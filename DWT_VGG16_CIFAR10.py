@@ -243,6 +243,7 @@ class DWTVGG16Cifar10:
     # Save the final weights
     model.save_weights(os.path.join(os.getcwd(), self.final_weights_file))
     # plot the training loss and accuracy
+    print(H.history)
     N = max_epochs
     plt.style.use("ggplot")
     plt.figure()
