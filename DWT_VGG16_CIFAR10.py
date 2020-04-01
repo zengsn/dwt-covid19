@@ -14,8 +14,9 @@ from keras.applications import VGG16
 from keras.layers import Input, Reshape
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Conv2D, BatchNormalization
-from keras import optimizers
 from keras.layers.core import Lambda
+from keras.models import Model
+from keras import optimizers
 from keras import backend as K
 from keras import regularizers
 
@@ -29,7 +30,8 @@ import os
 from WaveletDeconvolution import WaveletDeconvolution
 
 class DWTVGG16Cifar10:
-  def __init__(self, hps, train=True):
+  def __init__(self, hps, train=True): 
+    self.dataset      = hps["dataset"]
     self.num_classes  = hps["num_classes"] #10
     self.weight_decay = hps["weight_decay"] #0.0005
     self.wavelet      = hps["wavelet"]
@@ -39,7 +41,7 @@ class DWTVGG16Cifar10:
     self.x_test  = hps["x_test"]
     self.y_train = hps["y_train"]
     self.y_test  = hps["y_test"]
-    self.x_shape = self.x_train.shape
+    self.x_shape = self.x_train.shape[1:]
     self.hps = hps # other hp
     if self.wavelet:
       self.name = "dwt_vgg16_%s_wavelet_%d_%d" % (
@@ -58,7 +60,11 @@ class DWTVGG16Cifar10:
   def build_model(self):
     baseModel = VGG16( # Pre-trained VGG16
       weights="imagenet", include_top=False, 
-      input_tensor=Input(shape=(224, 224, 3)))
+      input_tensor=Input(shape=self.x_shape))
+    # loop over all layers in the base model and freeze them so they will
+    # *not* be updated during the first training process
+    for layer in baseModel.layers:
+      layer.trainable = False
     # construct the head of the model 
     # that will be placed on top of the the base model
     headModel = baseModel.output
@@ -80,14 +86,19 @@ class DWTVGG16Cifar10:
       headModel = Lambda(lambda x: tf.reduce_min(x, 3))(headModel) 
       headModel = Reshape([w,h,z])(headModel)
 
-    model.add(Flatten())
-    model.add(Dense(512,kernel_regularizer=regularizers.l2(self.weight_decay)))
-    model.add(Activation('relu'))
-    model.add(BatchNormalization())
+    # Normal fine-tuning
+    headModel = Flatten()(headModel)
+    headModel = Dense(512,kernel_regularizer=regularizers.l2(self.weight_decay))(headModel)
+    headModel = Activation('relu')(headModel)
+    headModel = BatchNormalization()(headModel)
 
-    model.add(Dropout(0.5))
-    model.add(Dense(self.num_classes))
-    model.add(Activation('softmax'))
+    headModel = Dropout(0.5)(headModel)
+    headModel = Dense(self.num_classes)(headModel)
+    headModel = Activation('softmax')(headModel)
+    
+    # place the head FC model on top of the base model
+    # (this will become the actual model we will train)
+    model = Model(inputs=baseModel.input, outputs=headModel)    
     return model
 
 
