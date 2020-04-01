@@ -163,7 +163,7 @@ class DWTVGG16Cifar10:
         os.getcwd(), "%s_result_%04d_%.4f_%.4f_%.4f.txt" % (
           self.name,self.max_epochs,acc,sensitivity,specificity))
     fo = open(result_path, "w")
-    fo.write(self.hps)
+    fo.write(str(self.hps))
     fo.close()
 
   def train(self, model):
