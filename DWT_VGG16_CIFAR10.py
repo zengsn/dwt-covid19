@@ -28,6 +28,7 @@ import numpy as np
 import argparse
 import os
 from WaveletDeconvolution import WaveletDeconvolution
+from keras.callbacks import ModelCheckpoint
 
 class DWTVGG16Cifar10:
   def __init__(self, hps, train=True): 
@@ -36,7 +37,7 @@ class DWTVGG16Cifar10:
     self.weight_decay = hps["weight_decay"] #0.0005
     self.wavelet      = hps["wavelet"]
     self.batch_size   = hps["batch_size"]
-    self.max_epoches  = hps["max_epoches"]
+    self.max_epochs  = hps["max_epochs"]
     self.x_train = hps["x_train"]
     self.x_test  = hps["x_test"]
     self.y_train = hps["y_train"]
@@ -44,17 +45,18 @@ class DWTVGG16Cifar10:
     self.x_shape = self.x_train.shape[1:]
     self.hps = hps # other hp
     if self.wavelet:
-      self.name = "dwt_vgg16_%s_wavelet_%d_%d" % (
-        self.dataset, self.batch_size, self.max_epoches)
+      self.name = "dwt_vgg16_%s_wavelet_%d" % (
+        self.dataset, self.batch_size)
     else:
-      self.name = "dwt_vgg16_%s_%d_%d" % (
-        self.dataset, self.batch_size, self.max_epoches)
+      self.name = "dwt_vgg16_%s_%d" % (
+        self.dataset, self.batch_size)
 
+    self.final_weights_file = "%s_%d.h5" % (self.name, self.max_epochs)
     self.model = self.build_model()
     if train:
       self.model = self.train(self.model)
-    else:
-      self.model.load_weights("%s.h5" % self.name)
+    else: # load the saved model
+      self.model.load_weights(os.path.join(os.getcwd(), self.final_weights_file))
 
 
   def build_model(self):
@@ -152,7 +154,7 @@ class DWTVGG16Cifar10:
     print("specificity: {:.4f}".format(specificity))
     result_path = os.path.join(
         os.getcwd(), "%s_result_%04d_%.4f_%.4f_%.4f.txt" % (
-          self.name,self.max_epoches,acc,sensitivity,specificity))
+          self.name,self.max_epochs,acc,sensitivity,specificity))
     fo = open(result_path, "w")
     fo.write(self.hps)
     fo.close()
@@ -160,7 +162,7 @@ class DWTVGG16Cifar10:
   def train(self, model):
     #training parameters
     batch_size = self.batch_size # 128
-    max_epoches = self.max_epoches # 250
+    max_epochs = self.max_epochs # 250
     learning_rate = 0.1
     lr_decay = 1e-6
     lr_drop = 20
@@ -178,11 +180,7 @@ class DWTVGG16Cifar10:
     y_train = self.y_train
     y_test  = self.y_test
 
-    def lr_scheduler(epoch):
-        return learning_rate * (0.5 ** (epoch // lr_drop))
-    reduce_lr = keras.callbacks.LearningRateScheduler(lr_scheduler)
-
-    #data augmentation
+    # data augmentation
     datagen = ImageDataGenerator(
         featurewise_center=False,  # set input mean to 0 over the dataset
         samplewise_center=False,  # set each sample mean to 0
@@ -197,22 +195,43 @@ class DWTVGG16Cifar10:
     # (std, mean, and principal components if ZCA whitening is applied).
     datagen.fit(x_train)
 
-    #optimization details
+    # optimization details
     sgd = optimizers.SGD(lr=learning_rate, decay=lr_decay, momentum=0.9, nesterov=True)
     model.compile(loss='categorical_crossentropy', optimizer=sgd,metrics=['accuracy'])
+    
+    # check the last training steps
+    checkpoint_dir = os.path.join(os.getcwd(), "%s_train" % self.name)
+    if not os.path.exists(checkpoint_dir):
+      os.mkdir(checkpoint_dir)
+    filepath = os.path.join(checkpoint_dir, '%s_{epoch:04d}.h5' % self.name)
+    period = 10
+    assert self.max_epochs % period == 0, "please set max epochs as n*%d" % period
+    checkpoint_cb = ModelCheckpoint( # Save weights, every 10-epochs. 
+        save_weights_only=True,filepath, verbose=1, period=period) 
+    for epoch in range(self.max_epochs,0,-1*period):
+      if os.path.isfile(filepath.format(epoch)):
+        print("Load saved weights from %s" % filepath.format(epoch))
+        model.load_weights(filepath.format(epoch))
+        break
 
-    # training process in a for loop with learning rate drop every 25 epoches.
+    # training process in a for loop with learning rate drop every 25 epochs.
+    def lr_scheduler(epoch):
+        return learning_rate * (0.5 ** (epoch // lr_drop))
+    reduce_lr = keras.callbacks.LearningRateScheduler(lr_scheduler)
+    
+    # Continue training
     H = model.fit_generator(
       datagen.flow(x_train, y_train,batch_size=batch_size),
       steps_per_epoch=x_train.shape[0] // batch_size,
-      epochs=max_epoches,
+      epochs=max_epochs,
       validation_data=(x_test, y_test),
-      callbacks=[reduce_lr],
-      verbose=2)
+      callbacks=[reduce_lr,checkpoint_cb],
+      verbose=1)
     
-    model.save_weights("%s.h5" % self.name)
+    # Save the final weights
+    model.save_weights(os.path.join(os.getcwd(), self.final_weights_file))
     # plot the training loss and accuracy
-    N = max_epoches
+    N = max_epochs
     plt.style.use("ggplot")
     plt.figure()
     plt.plot(np.arange(0, N), H.history["loss"], label="train_loss")
@@ -227,7 +246,7 @@ class DWTVGG16Cifar10:
     plt.ylabel("Loss/Accuracy")
     plt.legend(loc="lower left")
     plot_path = os.path.join(
-      os.getcwd(), "%s_plot_%04d.png" % (self.name,self.max_epoches))
+      os.getcwd(), "%s_plot_%04d.png" % (self.name,self.max_epochs))
     plt.savefig(plot_path)
     return model
 
@@ -242,7 +261,7 @@ if __name__ == '__main__':
   #  help="path to output loss/accuracy plot")
   ap.add_argument("-b", "--batch_size", type=int, default=128,
     help="batch size, default is 128")
-  ap.add_argument("-e", "--max_epoches", type=int, default=250,
+  ap.add_argument("-e", "--max_epochs", type=int, default=250,
     help="max epoches, default is 250")
   ap.add_argument('--wavelet', dest='wavelet', action='store_true')
   ap.add_argument('--no-wavelet', dest='wavelet', action='store_false')
