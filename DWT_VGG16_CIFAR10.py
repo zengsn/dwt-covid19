@@ -207,11 +207,15 @@ class DWTVGG16Cifar10:
     period = 10
     assert self.max_epochs % period == 0, "please set max epochs as n*%d" % period
     checkpoint_cb = ModelCheckpoint( # Save weights, every 10-epochs. 
-        save_weights_only=True,filepath, verbose=1, period=period) 
+        filepath, save_weights_only=True, verbose=1, period=period) 
+    last_epochs = 0
     for epoch in range(self.max_epochs,0,-1*period):
-      if os.path.isfile(filepath.format(epoch)):
-        print("Load saved weights from %s" % filepath.format(epoch))
-        model.load_weights(filepath.format(epoch))
+      #print(filepath)
+      value = {"epoch": epoch}
+      if os.path.isfile(filepath.format(**value)):
+        print("Load saved weights from %s" % filepath.format(**value))
+        model.load_weights(filepath.format(**value))
+        last_epochs = epoch
         break
 
     # training process in a for loop with learning rate drop every 25 epochs.
@@ -224,6 +228,7 @@ class DWTVGG16Cifar10:
       datagen.flow(x_train, y_train,batch_size=batch_size),
       steps_per_epoch=x_train.shape[0] // batch_size,
       epochs=max_epochs,
+      initial_epoch=last_epochs,
       validation_data=(x_test, y_test),
       callbacks=[reduce_lr,checkpoint_cb],
       verbose=1)
