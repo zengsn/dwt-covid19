@@ -242,25 +242,27 @@ class DWTVGG16Cifar10:
     
     # Save the final weights
     model.save_weights(os.path.join(os.getcwd(), self.final_weights_file))
-    # plot the training loss and accuracy
-    print(H.history)
-    N = max_epochs
-    plt.style.use("ggplot")
-    plt.figure()
-    plt.plot(np.arange(0, N), H.history["loss"], label="train_loss")
-    plt.plot(np.arange(0, N), H.history["val_loss"], label="val_loss")
-    if "accuracy" in H.history:
-      plt.plot(np.arange(0, N), H.history["accuracy"], label="train_acc")
-    else: 
-      plt.plot(np.arange(0, N), H.history["acc"], label="train_acc")
-    plt.plot(np.arange(0, N), H.history["val_accuracy"], label="val_acc")
-    plt.title("Training Loss and Accuracy (%s)" % self.name)
-    plt.xlabel("Epoch #")
-    plt.ylabel("Loss/Accuracy")
-    plt.legend(loc="lower left")
-    plot_path = os.path.join(
-      os.getcwd(), "%s_plot_%04d.png" % (self.name,self.max_epochs))
-    plt.savefig(plot_path)
+    if last_epochs<max_epochs: # plot the training loss and accuracy
+      print(H.history)
+      N = max_epochs
+      plt.style.use("ggplot")
+      plt.figure()
+      plt.plot(np.arange(0, N), H.history["loss"], label="train_loss")
+      plt.plot(np.arange(0, N), H.history["val_loss"], label="val_loss")
+      if "accuracy" in H.history:
+        plt.plot(np.arange(0, N), H.history["accuracy"], label="train_acc")
+      else: 
+        plt.plot(np.arange(0, N), H.history["acc"], label="train_acc")
+      plt.plot(np.arange(0, N), H.history["val_accuracy"], label="val_acc")
+      plt.title("Training Loss and Accuracy (%s)" % self.name)
+      plt.xlabel("Epoch #")
+      plt.ylabel("Loss/Accuracy")
+      plt.legend(loc="lower left")
+      plot_path = os.path.join(
+        os.getcwd(), "%s_plot_%04d.png" % (self.name,self.max_epochs))
+      plt.savefig(plot_path)
+    else: # 
+      print("Train from 1st epoch if needing to plot H.history!")
     return model
 
 if __name__ == '__main__':
