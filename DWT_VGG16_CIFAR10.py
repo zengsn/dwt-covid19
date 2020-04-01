@@ -20,6 +20,9 @@ from keras import optimizers
 from keras import backend as K
 from keras import regularizers
 
+# resize input to 48x48 at least
+import cv2  
+
 import tensorflow as tf
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
@@ -80,13 +83,14 @@ class DWTVGG16Cifar10:
       #headModel = Lambda(lambda x: tf.reshape(x, [-1,7*7,512]))(headModel) 
       headModel = WaveletDeconvolution(
         5, kernel_length=500, padding='same', 
-        input_shape=headModel.shape, data_format='channels_first')(headModel)
+        input_shape=[w*h,z], data_format='channels_first')(headModel)
       headModel = Activation('tanh')(headModel)
       headModel = Conv2D(5, (3, 3), padding='same')(headModel)
       headModel = Activation('relu')(headModel)
       print(headModel.shape) 
       headModel = Lambda(lambda x: tf.reduce_min(x, 3))(headModel) 
       headModel = Reshape([w,h,z])(headModel)
+      print(headModel.shape) 
 
     # Normal fine-tuning
     headModel = Flatten()(headModel)
@@ -275,8 +279,12 @@ if __name__ == '__main__':
   
   # 2. Load CIFAR-10
   (x_train, y_train), (x_test, y_test) = cifar10.load_data()
-  x_train = x_train.astype('float32')
-  x_test  = x_test.astype('float32')
+  #x_train = x_train.astype('float32')
+  #x_test  = x_test.astype('float32')
+  x_train = [cv2.resize(i,(64,64)) for i in x_train]
+  x_test  = [cv2.resize(i,(64,64)) for i in x_test]
+  x_train = np.concatenate([arr[np.newaxis] for arr in x_train] ).astype('float32')
+  x_test  = np.concatenate([arr[np.newaxis] for arr in x_test] ).astype('float32')
   y_train = keras.utils.to_categorical(y_train, 10)
   y_test  = keras.utils.to_categorical(y_test, 10)
   args['x_train'] = x_train
