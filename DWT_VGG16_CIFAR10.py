@@ -75,9 +75,12 @@ class DWTVGG16Cifar10:
     headModel = baseModel.output
     if self.hps["wavelet"]: # add WaveletDeconv       
       print(headModel.shape) 
-      w = headModel.shape[1] 
-      h = headModel.shape[2]
-      z = headModel.shape[3]
+      w = headModel.shape[1].value 
+      h = headModel.shape[2].value 
+      z = headModel.shape[3].value 
+      # TypeError: float() argument must be a string or a number, not 'Dimension' keras
+      # Solution: https://blog.csdn.net/qq_40774175/article/details/105196387
+      # When using Reshape, make sure the shape is using int values. 
       headModel = Reshape([w*h,z])(headModel)
       # Error: Variable is unhashable if Tensor equality is enabled
       #headModel = Lambda(lambda x: tf.reshape(x, [-1,7*7,512]))(headModel) 
@@ -278,7 +281,7 @@ if __name__ == '__main__':
   args = vars(ap.parse_args())
   
   if args["wavelet"]:
-    in_size = 224
+    in_size = 64
   else:
     in_size = 64
   
