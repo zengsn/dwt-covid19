@@ -280,10 +280,7 @@ if __name__ == '__main__':
   ap.set_defaults(wavelet=False)
   args = vars(ap.parse_args())
   
-  if args["wavelet"]:
-    in_size = 64
-  else:
-    in_size = 64
+  in_size = 64
   
   # 2. Load CIFAR-10
   (x_train, y_train), (x_test, y_test) = cifar10.load_data()
