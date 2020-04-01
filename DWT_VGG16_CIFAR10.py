@@ -277,12 +277,17 @@ if __name__ == '__main__':
   ap.set_defaults(wavelet=False)
   args = vars(ap.parse_args())
   
+  if args["wavelet"]:
+    in_size = 224
+  else:
+    in_size = 64
+  
   # 2. Load CIFAR-10
   (x_train, y_train), (x_test, y_test) = cifar10.load_data()
   #x_train = x_train.astype('float32')
   #x_test  = x_test.astype('float32')
-  x_train = [cv2.resize(i,(64,64)) for i in x_train]
-  x_test  = [cv2.resize(i,(64,64)) for i in x_test]
+  x_train = [cv2.resize(i,(in_size,in_size)) for i in x_train]
+  x_test  = [cv2.resize(i,(in_size,in_size)) for i in x_test]
   x_train = np.concatenate([arr[np.newaxis] for arr in x_train] ).astype('float32')
   x_test  = np.concatenate([arr[np.newaxis] for arr in x_test] ).astype('float32')
   y_train = keras.utils.to_categorical(y_train, 10)
