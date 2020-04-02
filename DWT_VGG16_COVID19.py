@@ -362,12 +362,15 @@ if __name__ == '__main__':
   labels = le.fit_transform(labels)
   labels = to_categorical(labels)  
   #print(len(le.classes_))
-  args["num_classes"] = len(le.classes_) # 2 or 3
+  num_classes = len(le.classes_) # 2 or 3
+  args["num_classes"] = num_classes
 
   # partition the data into training and testing splits using 80% of
   # the data for training and the remaining 20% for testing
   (x_train, x_test, y_train, y_test) = train_test_split(data, labels,
     test_size=0.20, stratify=labels, random_state=42)
+  y_train = to_categorical(y_train, num_classes)
+  y_test = to_categorical(y_test, num_classes)
   args['x_train'] = x_train
   args['x_test']  = x_test
   args['y_train'] = y_train
