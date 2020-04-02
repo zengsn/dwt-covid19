@@ -203,7 +203,7 @@ class DWTVGG16COVID19:
     #x_test = x_test.astype('float32')
     x_train = self.x_train
     x_test  = self.x_test
-    x_train, x_test = self.normalize(x_train, x_test)
+    #x_train, x_test = self.normalize(x_train, x_test)
 
     #y_train = keras.utils.to_categorical(y_train, self.num_classes)
     #y_test = keras.utils.to_categorical(y_test, self.num_classes)
