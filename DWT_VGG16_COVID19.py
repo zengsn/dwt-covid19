@@ -285,7 +285,7 @@ class DWTVGG16COVID19:
       plt.ylabel("Loss/Accuracy")
       plt.legend(loc="lower left")
       plot_path = os.path.join(
-        os.getcwd(), "%s_plot_%04d.png" % (self.name,self.max_epochs))
+        self.model_dir, "%s_plot_%04d.png" % (self.name,self.max_epochs))
       plt.savefig(plot_path)
     else: # 
       print("Train from 1st epoch if needing to plot H.history!")
