@@ -116,35 +116,11 @@ class DWTVGG16COVID19:
     # place the head FC model on top of the base model
     # (this will become the actual model we will train)
     model = Model(inputs=baseModel.input, outputs=headModel)    
-    return model
+    return model 
 
-
-  def normalize(self,X_train,X_test):
-    #this function normalize inputs for zero mean and unit variance
-    # it is used when training a model.
-    # Input: training set and test set
-    # Output: normalized training set and test set according to the trianing set statistics.
-    mean = np.mean(X_train,axis=(0,1,2,3))
-    std = np.std(X_train, axis=(0, 1, 2, 3))
-    X_train = (X_train-mean)/(std+1e-7)
-    X_test = (X_test-mean)/(std+1e-7)
-    return X_train, X_test
-
-  def normalize_production(self,x):
-    #this function is used to normalize instances in production according to saved training set statistics
-    # Input: X - a training set
-    # Output X - a normalized training set according to normalization constants.
-
-    #these values produced during first training and are general for the standard cifar10 training set normalization
-    mean = 120.707
-    std = 64.15
-    return (x-mean)/(std+1e-7)
-
-  def predict(self, normalize=True):
+  def predict(self):
     x = self.x_test
     y = self.y_test
-    if normalize:
-        x = self.normalize_production(x)
     predIdxs = self.model.predict(x, self.batch_size)
 
     # for each image in the testing set we need to find the index of the
@@ -174,11 +150,9 @@ class DWTVGG16COVID19:
     fo.write(str(self.hps))
     fo.close()
   
-  def evaluate(self, normalize=True):
+  def evaluate(self):
     x = self.x_test
     y = self.y_test
-    if normalize:
-        x = self.normalize_production(x)
     test_loss, test_acc = self.model.evaluate(x, y)
     print("test_loss: {:.4f}".format(test_loss))
     print("test_acc: {:.4f}".format(test_acc))
