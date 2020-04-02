@@ -104,9 +104,10 @@ class DWTVGG16COVID19:
 
     # Normal fine-tuning
     headModel = Flatten()(headModel)
-    headModel = Dense(512,kernel_regularizer=regularizers.l2(self.weight_decay))(headModel)
+    #headModel = Dense(512,kernel_regularizer=regularizers.l2(self.weight_decay))(headModel)
+    headModel = Dense(64)(headModel)
     headModel = Activation('relu')(headModel)
-    headModel = BatchNormalization()(headModel)
+    #headModel = BatchNormalization()(headModel)
 
     headModel = Dropout(0.5)(headModel)
     headModel = Dense(self.num_classes)(headModel)
@@ -241,6 +242,9 @@ class DWTVGG16COVID19:
     assert self.max_epochs % period == 0, "please set max epochs as n*%d" % period
     checkpoint_cb = ModelCheckpoint( # Save weights, every 10-epochs. 
         filepath, save_weights_only=True, verbose=1, period=period) 
+    # TODO add customized history callback
+    # https://github.com/keras-team/keras/blob/master/keras/callbacks/callbacks.py#L614
+    # history_db = keras.callbacks.callbacks.History()
     last_epochs = 0
     for epoch in range(self.max_epochs,0,-1*period):
       #print(filepath)
@@ -248,6 +252,8 @@ class DWTVGG16COVID19:
       if os.path.isfile(filepath.format(**value)):
         print("Load saved weights from %s" % filepath.format(**value))
         model.load_weights(filepath.format(**value))
+        # TODO: load history
+        # history_db.history.append(v)
         last_epochs = epoch
         break
 
