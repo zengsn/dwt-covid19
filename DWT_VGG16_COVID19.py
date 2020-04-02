@@ -361,7 +361,8 @@ if __name__ == '__main__':
   le = LabelEncoder()
   labels = le.fit_transform(labels)
   labels = to_categorical(labels)  
-  #print(len(le.classes_))
+  #print(labels)
+  #print(le.classes_)
   num_classes = len(le.classes_) # 2 or 3
   args["num_classes"] = num_classes
 
@@ -369,17 +370,21 @@ if __name__ == '__main__':
   # the data for training and the remaining 20% for testing
   (x_train, x_test, y_train, y_test) = train_test_split(data, labels,
     test_size=0.20, stratify=labels, random_state=42)
-  y_train = to_categorical(y_train, num_classes)
-  y_test = to_categorical(y_test, num_classes)
+  #print(y_train)
+  #print(y_test)
   args['x_train'] = x_train
   args['x_test']  = x_test
   args['y_train'] = y_train
   args['y_test']  = y_test
+  print(y_train[:10,:])
+  print(y_test[:10,:])
 
   # 3. Create and train the model
   model = DWTVGG16COVID19(args, True)
 
-  # 4. Evaluate the result
-  #predicted_x = model.predict()
+  # 4. Predict the result
+  predicted_x = model.predict()
+
+  # 5. Evaluate the result
   model.evaluate()
 
