@@ -54,12 +54,14 @@ class DWTVGG16Cifar10:
       self.name = "dwt_vgg16_%s_%d" % (
         self.dataset, self.batch_size)
 
+    self.model_dir = os.path.join(os.getcwd(), "%s_model" % self.name)
     self.final_weights_file = "%s_%d.h5" % (self.name, self.max_epochs)
     self.model = self.build_model()
     if train:
       self.model = self.train(self.model)
     else: # load the saved model
-      self.model.load_weights(os.path.join(os.getcwd(), self.final_weights_file))
+      self.model.load_weights(os.path.join(
+        self.model_dir, self.final_weights_file))
 
 
   def build_model(self):
@@ -160,8 +162,23 @@ class DWTVGG16Cifar10:
     print("sensitivity: {:.4f}".format(sensitivity))
     print("specificity: {:.4f}".format(specificity))
     result_path = os.path.join(
-        os.getcwd(), "%s_result_%04d_%.4f_%.4f_%.4f.txt" % (
+        self.model_dir, "%s_result_%04d_%.4f_%.4f_%.4f.txt" % (
           self.name,self.max_epochs,acc,sensitivity,specificity))
+    fo = open(result_path, "w")
+    fo.write(str(self.hps))
+    fo.close()
+  
+  def evaluate(self, normalize=True):
+    x = self.x_test
+    y = self.y_test
+    if normalize:
+        x = self.normalize_production(x)
+    test_loss, test_acc = self.model.evaluate(x, y)
+    print("test_loss: {:.4f}".format(test_loss))
+    print("test_acc: {:.4f}".format(test_acc))
+    result_path = os.path.join(
+        self.model_dir, "%s_result_%04d_%.4f_%.4f.txt" % (
+          self.name,self.max_epochs,test_acc,test_loss))
     fo = open(result_path, "w")
     fo.write(str(self.hps))
     fo.close()
@@ -207,7 +224,7 @@ class DWTVGG16Cifar10:
     model.compile(loss='categorical_crossentropy', optimizer=sgd,metrics=['accuracy'])
     
     # check the last training steps
-    checkpoint_dir = os.path.join(os.getcwd(), "%s_train" % self.name)
+    checkpoint_dir = self.model_dir
     if not os.path.exists(checkpoint_dir):
       os.mkdir(checkpoint_dir)
     filepath = os.path.join(checkpoint_dir, '%s_{epoch:04d}.h5' % self.name)
@@ -241,7 +258,7 @@ class DWTVGG16Cifar10:
       verbose=1)
     
     # Save the final weights
-    model.save_weights(os.path.join(os.getcwd(), self.final_weights_file))
+    model.save_weights(os.path.join(self.model_dir, self.final_weights_file))
     if last_epochs<max_epochs: # plot the training loss and accuracy
       print(H.history)
       N = max_epochs
@@ -305,6 +322,7 @@ if __name__ == '__main__':
   # 3. Create and train the model
   model = DWTVGG16Cifar10(args, True)
 
-  # 4. Predict the result
-  predicted_x = model.predict()
+  # 4. Evaluate the result
+  #predicted_x = model.predict()
+  model.evaluate()
 
