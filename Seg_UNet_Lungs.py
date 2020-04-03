@@ -34,21 +34,19 @@ from tqdm import tqdm
 DILATE_KERNEL = np.ones((15, 15), np.uint8)
 
 class SegUNetLungs:
-  def __init__(self, hps, x_shape=(512,512,1), train=True): 
+  def __init__(self, hps, x_shape=(512,512,1)): 
     self.input_dir    = hps["input_dir"]
     self.prepare_data_dir() # prepare data directories under input_dir
     self.batch_size   = hps["batch_size"]
     self.max_epochs  = hps["max_epochs"]
     self.hps = hps # other hp
 
-    self.model_dir = os.path.join(os.getcwd(), "%s_model" % self.name)
-    self.final_weights_file = "%s_%d.h5" % (self.name, self.max_epochs)
+    self.name = "segmentation_unet_lungs"
+    self.model_dir = os.path.join(self.input_dir, "%s_model" % self.name)
     self.model = self.build_model(x_shape)
-    if train:
-      self.model = self.train(self.model)
-    else: # load the saved model
-      self.model.load_weights(os.path.join(
-        self.model_dir, self.final_weights_file))
+    
+    # Go train but it will load the best weights if already trained
+    self.model = self.train(self.model)
   
   def prepare_data_dir(self):
     """
