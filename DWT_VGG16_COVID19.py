@@ -9,14 +9,15 @@
 from __future__ import print_function
 from keras.preprocessing.image import ImageDataGenerator
 from keras.applications import VGG16
+from keras.callbacks import ModelCheckpoint
 from keras.layers import Input, Reshape
 from keras.layers import Dense, Dropout, Activation, Flatten
-from keras.layers import Conv2D, BatchNormalization
+from keras.layers import Conv2D
 from keras.layers.core import Lambda
 from keras.models import Model
-from keras import optimizers
-from keras import backend as K
-from keras import regularizers
+from keras.optimizers import Adam
+#from keras import backend as K
+#from keras import regularizers
 from keras.utils import to_categorical
 
 # resize input to 48x48 at least
@@ -34,8 +35,6 @@ import numpy as np
 import argparse
 import os
 from WaveletDeconvolution import WaveletDeconvolution
-from keras.callbacks import ModelCheckpoint
-from keras.optimizers import Adam
 
 class DWTVGG16COVID19:
   def __init__(self, hps, train=True): 

@@ -17,7 +17,7 @@ from keras.layers import Conv2D, BatchNormalization
 from keras.layers.core import Lambda
 from keras.models import Model
 from keras import optimizers
-from keras import backend as K
+#from keras import backend as K
 from keras import regularizers
 
 # resize input to 48x48 at least
@@ -318,6 +318,7 @@ if __name__ == '__main__':
   args['y_test']  = y_test
   args["num_classes"]  = 10
   args["weight_decay"] = 0.0005
+  print(y_train[:10,:])
 
   # 3. Create and train the model
   model = DWTVGG16Cifar10(args, True)
