@@ -58,6 +58,10 @@ class SegUNetLungs:
     !mkdir ../input/segmentation/train/mask
     !mkdir ../input/segmentation/train/dilate
     """
+    def create_dir_if_not_exists(dir_path):
+      if not os.path.exists(dir_path):
+        os.mkdir(dir_path)
+        
     self.seg_dir              = os.path.join(self.input_dir, "segmentation")
     self.seg_test_dir         = os.path.join(self.seg_dir, "test")    
     self.seg_train_dir        = os.path.join(self.seg_dir, "train")
@@ -65,6 +69,13 @@ class SegUNetLungs:
     self.seg_train_img_dir    = os.path.join(self.seg_train_dir, "image")
     self.seg_train_mask_dir   = os.path.join(self.seg_train_dir, "mask")
     self.seg_train_dilate_dir = os.path.join(self.seg_train_dir, "dilate")
+    create_dir_if_not_exists(self.seg_dir)
+    create_dir_if_not_exists(self.seg_test_dir)
+    create_dir_if_not_exists(self.seg_train_dir)
+    create_dir_if_not_exists(self.seg_train_aug_dir)
+    create_dir_if_not_exists(self.seg_train_img_dir)
+    create_dir_if_not_exists(self.seg_train_mask_dir)
+    create_dir_if_not_exists(self.seg_train_dilate_dir)
     # ../input/    
     self.seg_src_dir  = os.path.join(self.input_dir,"pulmonary-chest-xray-abnormalities")
     self.seg_src_shenzhen_train_dir       = os.path.join(self.seg_src_dir, "ChinaSet_AllFiles")
