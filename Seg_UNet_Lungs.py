@@ -46,7 +46,7 @@ class SegUNetLungs:
     self.model = self.build_model(x_shape)
     
     # Go train but it will load the best weights if already trained
-    self.model = self.train(self.model)
+    self.model = self.train()
   
   def prepare_data_dir(self):
     """
