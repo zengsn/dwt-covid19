@@ -107,7 +107,7 @@ class SegUNetLungs:
     
       if (left_image_file in montgomery_train):
         cv2.imwrite(os.path.join(self.seg_train_img_dir, base_file), image)
-        cv2.imwrite(os.path.join(self.seg_mask_dir, base_file), mask)
+        cv2.imwrite(os.path.join(self.seg_train_mask_dir, base_file), mask)
         cv2.imwrite(os.path.join(self.seg_train_dilate_dir, base_file), mask_dilate)
       else:
         filename, fileext = os.path.splitext(base_file)
