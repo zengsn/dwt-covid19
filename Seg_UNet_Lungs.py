@@ -545,7 +545,7 @@ if __name__ == '__main__':
   args = vars(ap.parse_args())
   
   # 2. Create and train the model
-  model = SegUNetLungs(args, x_shape=(512,512,1), train=True)
+  model = SegUNetLungs(args, x_shape=(512,512,1))
 
   # 3. Perform segmentation
   model.predict()
