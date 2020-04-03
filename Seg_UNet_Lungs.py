@@ -541,12 +541,10 @@ class SegUNetLungs:
 if __name__ == '__main__':
   # 1. Construct the argument parser and parse the arguments
   ap = argparse.ArgumentParser()
-  ap.add_argument("-d", "--dataset", type=str, default="cifar10",
-    help="the dataset name, default is cifar10")
-  #ap.add_argument("-p", "--plot", type=str, default="plot.png",
-  #  help="path to output loss/accuracy plot")
-  #ap.add_argument("-m", "--model", type=str, default="keras_covid19",
-  #  help="path to output loss/accuracy plot")
+  ap.add_argument("-in", "--input_dir", type=str, required=True,
+    help="the directory of input is required")
+  ap.add_argument("-t", "--test_dir", type=str, default=None,
+    help="the directory of covid-19 images")
   ap.add_argument("-b", "--batch_size", type=int, default=2,
     help="batch size, default is 2")
   ap.add_argument("-e", "--max_epochs", type=int, default=56,
@@ -560,5 +558,6 @@ if __name__ == '__main__':
   model.predict()
 
   # 4. Perform segmentation on COVID-19
-  #model.predict(PATH_TO_COVID19)
+  if args["test_dir"]:
+    model.predict(args["test_dir"])
 
