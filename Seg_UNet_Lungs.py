@@ -69,20 +69,15 @@ class SegUNetLungs:
     self.seg_train_dilate_dir = os.path.join(self.seg_train_dir, "dilate")
     # ../input/    
     self.seg_src_dir  = os.path.join(self.input_dir,"pulmonary-chest-xray-abnormalities")
-    self.seg_src_shenzhen_train_dir       = os.path.join(self.seg_src_dir, 
-                                                     "ChinaSet_AllFiles", "ChinaSet_AllFiles")
-    self.seg_src_shenzhen_train_img_dir   = os.path.join(self.seg_src_shenzhen_train_dir, 
-                                                     "CXR_png")
-    self.seg_src_shenzhen_mask_dir        = os.path.join(self.input_dir, 
-                                                     "shcxr-lung-mask", "mask", "mask")
-    self.seg_src_montgomery_train_dir     = os.path.join(self.seg_src_dir, 
-                                                     "Montgomery", "MontgomerySet")
-    self.seg_src_montgomery_train_img_dir = os.path.join(self.seg_src_montgomery_train_dir, 
-                                                     "CXR_png")
+    self.seg_src_shenzhen_train_dir       = os.path.join(self.seg_src_dir, "ChinaSet_AllFiles")
+    self.seg_src_shenzhen_train_img_dir   = os.path.join(self.seg_src_shenzhen_train_dir, "CXR_png")
+    self.seg_src_shenzhen_mask_dir        = os.path.join(self.input_dir, "shcxr-lung-mask", "mask")
+    self.seg_src_montgomery_train_dir     = os.path.join(self.seg_src_dir, "MontgomerySet")
+    self.seg_src_montgomery_train_img_dir = os.path.join(self.seg_src_montgomery_train_dir, "CXR_png")
     self.seg_src_montgomery_left_mask_dir = os.path.join(self.seg_src_montgomery_train_dir, 
-                                                     "ManualMask", "leftMask")
-    self.seg_src_montgomery_right_mask_dir= os.path.join(self.seg_src_montgomery_train_dir, 
-                                                     "ManualMask", "rightMask")
+                                                         "ManualMask", "leftMask")
+    self.seg_src_montgomery_right_mask_dir= os.path.join(self.seg_src_montgomery_train_dir,
+                                                         "ManualMask", "rightMask")
   
   def prepare_data_montgomery(self):
     """
