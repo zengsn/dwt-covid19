@@ -428,6 +428,7 @@ class SegUNetLungs:
     return img
   
   def predict(self, test_dir=None):
+    in_size = self.input_size
     if not test_dir:
       test_dir = self.seg_test_dir
     # Helper functions to load test chest x-ray images  
