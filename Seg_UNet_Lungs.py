@@ -36,8 +36,7 @@ DILATE_KERNEL = np.ones((15, 15), np.uint8)
 class SegUNetLungs:
   def __init__(self, hps): 
     self.input_dir    = hps["input_dir"]
-    if "test_dir" not in hps:
-      self.prepare_data_dir() # prepare data directories under input_dir
+    self.prepare_data_dir() # prepare data directories under input_dir
     self.batch_size = hps["batch_size"]
     self.max_epochs = hps["max_epochs"]
     self.input_size = hps["input_size"]
