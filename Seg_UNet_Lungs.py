@@ -45,7 +45,7 @@ class SegUNetLungs:
 
     self.name = "segmentation_unet_lungs"
     self.model_dir = os.path.join(self.input_dir, "%s_model" % self.name)
-    self.model = self.build_model(x_shape)
+    self.model = self.build_model(self.x_shape)
     
     # Go train but it will load the best weights if already trained
     self.model = self.train()
