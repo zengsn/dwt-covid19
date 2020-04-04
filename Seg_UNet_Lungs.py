@@ -452,11 +452,30 @@ class SegUNetLungs:
     save_result(test_dir, results, test_files)
 
   def train(self):
-    # Prepare data
-    self.prepare_data_montgomery()
-    self.prepare_data_shenzhen()
-    train_files = self.prepare_data()
     in_size = self.input_size
+    # check the last training steps
+    checkpoint_dir = self.model_dir
+    if not os.path.exists(checkpoint_dir):
+      os.mkdir(checkpoint_dir)
+    filepath = os.path.join(checkpoint_dir, '%s_{epoch:04d}.h5' % self.name)
+    checkpoint_cb = ModelCheckpoint( # Save weights, every 10-epochs. 
+        filepath, #save_weights_only=True,period=period,
+        monitor='loss', verbose=1, 
+        save_best_only=True) 
+    last_epochs = 0
+    for epoch in range(self.max_epochs,0,-1):
+      #print(filepath)
+      value = {"epoch": epoch} 
+      if os.path.isfile(filepath.format(**value)):
+        print("Load saved weights from %s" % filepath.format(**value))
+        model.load_weights(filepath.format(**value))
+        last_epochs = epoch # the last epoch
+        break
+    # Prepare data
+    if last_epochs==0: # not train before
+      self.prepare_data_montgomery()
+      self.prepare_data_shenzhen()
+    train_files = self.prepare_data()
     
     # Select test and validation files        
     def add_suffix(base_file, suffix):
@@ -489,26 +508,7 @@ class SegUNetLungs:
     model.compile(optimizer=Adam(lr=1e-5), 
                   loss=self.dice_coef_loss, 
                   metrics=[self.dice_coef, 'binary_accuracy'])
-    model.summary()
-    
-    # check the last training steps
-    checkpoint_dir = self.model_dir
-    if not os.path.exists(checkpoint_dir):
-      os.mkdir(checkpoint_dir)
-    filepath = os.path.join(checkpoint_dir, '%s_{epoch:04d}.h5' % self.name)
-    checkpoint_cb = ModelCheckpoint( # Save weights, every 10-epochs. 
-        filepath, #save_weights_only=True,period=period,
-        monitor='loss', verbose=1, 
-        save_best_only=True) 
-    last_epochs = 0
-    for epoch in range(self.max_epochs,0,-1):
-      #print(filepath)
-      value = {"epoch": epoch} 
-      if os.path.isfile(filepath.format(**value)):
-        print("Load saved weights from %s" % filepath.format(**value))
-        model.load_weights(filepath.format(**value))
-        last_epochs = epoch # the last epoch
-        break
+    model.summary()    
 
     # training process in a for loop with learning rate drop every 25 epochs.
     #def lr_scheduler(epoch):
