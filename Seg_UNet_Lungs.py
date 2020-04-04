@@ -127,7 +127,7 @@ class SegUNetLungs:
         cv2.imwrite(os.path.join(self.seg_test_dir, "%s_dilate%s" % (filename, fileext)), mask_dilate)
     
     # after processing, show some samples 
-    self.show_montgomery(montgomery_train,montgomery_test)
+    #self.show_montgomery(montgomery_train,montgomery_test)
   
   def add_colored_dilate(self, image, mask_image, dilate_image):
     mask_image_gray = cv2.cvtColor(mask_image, cv2.COLOR_BGR2GRAY)
@@ -241,7 +241,7 @@ class SegUNetLungs:
         cv2.imwrite(os.path.join(self.seg_test_dir, "%s_dilate%s" % (filename, fileext)), mask_dilate)
     
     # After that, show some samples
-    self.show_shenzhen(shenzhen_train, shenzhen_test)
+    #self.show_shenzhen(shenzhen_train, shenzhen_test)
   
   def show_shenzhen(self,shenzhen_train,shenzhen_test):
     """
