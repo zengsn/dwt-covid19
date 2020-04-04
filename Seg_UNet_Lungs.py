@@ -40,7 +40,7 @@ class SegUNetLungs:
     self.batch_size = hps["batch_size"]
     self.max_epochs = hps["max_epochs"]
     self.input_size = hps["input_size"]
-    self.x_shape = (input_size,input_size,1)
+    self.x_shape = (self.input_size,self.input_size,1)
     self.hps = hps # other hp
 
     self.name = "segmentation_unet_lungs"
