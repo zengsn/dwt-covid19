@@ -463,12 +463,14 @@ class SegUNetLungs:
         monitor='loss', verbose=1, 
         save_best_only=True) 
     last_epochs = 0
+    weights_to_load = ""
     for epoch in range(self.max_epochs,0,-1):
       #print(filepath)
       value = {"epoch": epoch} 
       if os.path.isfile(filepath.format(**value)):
         print("Load saved weights from %s" % filepath.format(**value))
-        model.load_weights(filepath.format(**value))
+        #model.load_weights(filepath.format(**value))
+        weights_to_load = filepath.format(**value)
         last_epochs = epoch # the last epoch
         break
     # Prepare data
@@ -503,6 +505,8 @@ class SegUNetLungs:
       save_to_dir=os.path.abspath(self.seg_train_aug_dir))
     
     model= self.model
+    if last_epochs > 0: # load weights already trained
+      model.load_weights(weights_to_load)    
 
     # optimization details
     model.compile(optimizer=Adam(lr=1e-5), 
