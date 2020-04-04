@@ -34,11 +34,13 @@ from tqdm import tqdm
 DILATE_KERNEL = np.ones((15, 15), np.uint8)
 
 class SegUNetLungs:
-  def __init__(self, hps, x_shape=(512,512,1)): 
+  def __init__(self, hps): 
     self.input_dir    = hps["input_dir"]
     self.prepare_data_dir() # prepare data directories under input_dir
-    self.batch_size   = hps["batch_size"]
-    self.max_epochs  = hps["max_epochs"]
+    self.batch_size = hps["batch_size"]
+    self.max_epochs = hps["max_epochs"]
+    self.input_size = hps["input_size"]
+    self.x_shape = (input_size,input_size,1)
     self.hps = hps # other hp
 
     self.name = "segmentation_unet_lungs"
@@ -109,9 +111,10 @@ class SegUNetLungs:
       left_mask = cv2.imread(left_image_file, cv2.IMREAD_GRAYSCALE)
       right_mask = cv2.imread(right_image_file, cv2.IMREAD_GRAYSCALE)
       
-      image = cv2.resize(image, (512, 512))
-      left_mask = cv2.resize(left_mask, (512, 512))
-      right_mask = cv2.resize(right_mask, (512, 512))
+      in_size = self.input_size
+      image = cv2.resize(image, (in_size, in_size))
+      left_mask = cv2.resize(left_mask, (in_size, in_size))
+      right_mask = cv2.resize(right_mask, (in_size, in_size))
       
       mask = np.maximum(left_mask, right_mask)
       mask_dilate = cv2.dilate(mask, DILATE_KERNEL, iterations=1)
@@ -226,8 +229,9 @@ class SegUNetLungs:
       image = cv2.imread(image_file)
       mask = cv2.imread(mask_file, cv2.IMREAD_GRAYSCALE)
           
-      image = cv2.resize(image, (512, 512))
-      mask = cv2.resize(mask, (512, 512))
+      in_size = self.input_size
+      image = cv2.resize(image, (in_size, in_size))
+      mask = cv2.resize(mask, (in_size, in_size))
       mask_dilate = cv2.dilate(mask, DILATE_KERNEL, iterations=1)
     
       if (mask_file in shenzhen_train):
@@ -441,7 +445,7 @@ class SegUNetLungs:
     
     test_files = [test_file for test_file in glob(os.path.join(test_dir, "*.png")) 
                   if ("_mask" not in test_file and "_dilate" not in test_file and "_predict" not in test_file)]
-    test_gen = test_generator(test_files, target_size=(512,512))
+    test_gen = test_generator(test_files, target_size=(in_size,in_size))
     results = self.model.predict_generator(test_gen, len(test_files), verbose=1)
     save_result(test_dir, results, test_files)
 
@@ -450,6 +454,7 @@ class SegUNetLungs:
     self.prepare_data_montgomery()
     self.prepare_data_shenzhen()
     train_files = self.prepare_data()
+    in_size = self.input_size
     
     # Select test and validation files        
     def add_suffix(base_file, suffix):
@@ -457,8 +462,8 @@ class SegUNetLungs:
       return "%s_%s%s" % (filename, suffix, fileext)
     test_files = [test_file for test_file in glob(os.path.join(self.seg_test_dir, "*.png")) 
                   if ("_mask" not in test_file and "_dilate" not in test_file and "_predict" not in test_file)]
-    validation_data = (self.test_load_image(test_files[0], target_size=(512, 512)),
-                    self.test_load_image(add_suffix(test_files[0], "dilate"), target_size=(512, 512)))
+    validation_data = (self.test_load_image(test_files[0], target_size=(in_size, in_size)),
+                    self.test_load_image(add_suffix(test_files[0], "dilate"), target_size=(in_size, in_size)))
     len(test_files), len(validation_data)
 
     # Prepare the U-Net model and train the model.
@@ -470,9 +475,10 @@ class SegUNetLungs:
       zoom_range=0.05,
       horizontal_flip=True,
       fill_mode='nearest')
+    
     train_gen = self.train_generator(
       self.batch_size, self.seg_train_dir, 'image','dilate', 
-      train_generator_args,target_size=(512,512),
+      train_generator_args,target_size=(in_size,in_size),
       save_to_dir=os.path.abspath(self.seg_train_aug_dir))
     
     model= self.model
@@ -546,9 +552,11 @@ if __name__ == '__main__':
   # 1. Construct the argument parser and parse the arguments
   ap = argparse.ArgumentParser()
   ap.add_argument("-in", "--input_dir", type=str, required=True,
-    help="the directory of input is required")
+    help="directory of input is required")
   ap.add_argument("-t", "--test_dir", type=str, default=None,
-    help="the directory of covid-19 images")
+    help="directory of covid-19 images")
+  ap.add_argument("-is", "--input_size", type=int, default=256,
+    help="input size, e.g., 256, 512")
   ap.add_argument("-b", "--batch_size", type=int, default=2,
     help="batch size, default is 2")
   ap.add_argument("-e", "--max_epochs", type=int, default=56,
@@ -556,7 +564,7 @@ if __name__ == '__main__':
   args = vars(ap.parse_args())
   
   # 2. Create and train the model
-  model = SegUNetLungs(args, x_shape=(512,512,1))
+  model = SegUNetLungs(args)
 
   # 3. Perform segmentation
   model.predict()
