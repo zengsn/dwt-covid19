@@ -347,34 +347,38 @@ model_checkpoint = ModelCheckpoint('unet_lung_seg.hdf5',
                                    verbose=1, 
                                    save_best_only=True)
 
-history = model.fit_generator(train_gen,
+if not os.path.exists('unet_lung_seg.hdf5'): 
+  history = model.fit_generator(train_gen,
                               steps_per_epoch=len(train_files) / BATCH_SIZE, 
                               epochs=EPOCHS, 
                               callbacks=[model_checkpoint],
                               validation_data = validation_data)
+else: # load the trained model
+  history = None
+  model.load_weights('unet_lung_seg.hdf5')
 
 # Test
 test_gen = test_generator(test_files, target_size=(IN_SIZE,IN_SIZE))
 results = model.predict_generator(test_gen, len(test_files), verbose=1)
 save_result(SEGMENTATION_TEST_DIR, results, test_files)
 
-# Plot training history
-fig, axs = plt.subplots(1, 2, figsize = (15, 4))
-
-training_loss = history.history['loss']
-validation_loss = history.history['val_loss']
-
-training_accuracy = history.history['binary_accuracy']
-validation_accuracy = history.history['val_binary_accuracy']
-
-epoch_count = range(1, len(training_loss) + 1)
-
-axs[0].plot(epoch_count, training_loss, 'r--')
-axs[0].plot(epoch_count, validation_loss, 'b-')
-axs[0].legend(['Training Loss', 'Validation Loss'])
-
-axs[1].plot(epoch_count, training_accuracy, 'r--')
-axs[1].plot(epoch_count, validation_accuracy, 'b-')
-axs[1].legend(['Training Accuracy', 'Validation Accuracy'])
-
-plt.savefig('seg_unet_lungs_results.jpg', bbox_inches='tight')
+if history is not None: # Plot training history
+  fig, axs = plt.subplots(1, 2, figsize = (15, 4))
+  
+  training_loss = history.history['loss']
+  validation_loss = history.history['val_loss']
+  
+  training_accuracy = history.history['binary_accuracy']
+  validation_accuracy = history.history['val_binary_accuracy']
+  
+  epoch_count = range(1, len(training_loss) + 1)
+  
+  axs[0].plot(epoch_count, training_loss, 'r--')
+  axs[0].plot(epoch_count, validation_loss, 'b-')
+  axs[0].legend(['Training Loss', 'Validation Loss'])
+  
+  axs[1].plot(epoch_count, training_accuracy, 'r--')
+  axs[1].plot(epoch_count, validation_accuracy, 'b-')
+  axs[1].legend(['Training Accuracy', 'Validation Accuracy'])
+  
+  plt.savefig('seg_unet_lungs_results.jpg', bbox_inches='tight')
