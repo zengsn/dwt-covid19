@@ -354,7 +354,7 @@ history = model.fit_generator(train_gen,
                               validation_data = validation_data)
 
 # Test
-test_gen = test_generator(test_files, target_size=(512,512))
+test_gen = test_generator(test_files, target_size=(IN_SIZE,IN_SIZE))
 results = model.predict_generator(test_gen, len(test_files), verbose=1)
 save_result(SEGMENTATION_TEST_DIR, results, test_files)
 
