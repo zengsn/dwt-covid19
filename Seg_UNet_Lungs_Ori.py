@@ -352,3 +352,29 @@ history = model.fit_generator(train_gen,
                               epochs=EPOCHS, 
                               callbacks=[model_checkpoint],
                               validation_data = validation_data)
+
+# Test
+test_gen = test_generator(test_files, target_size=(512,512))
+results = model.predict_generator(test_gen, len(test_files), verbose=1)
+save_result(SEGMENTATION_TEST_DIR, results, test_files)
+
+# Plot training history
+fig, axs = plt.subplots(1, 2, figsize = (15, 4))
+
+training_loss = history.history['loss']
+validation_loss = history.history['val_loss']
+
+training_accuracy = history.history['binary_accuracy']
+validation_accuracy = history.history['val_binary_accuracy']
+
+epoch_count = range(1, len(training_loss) + 1)
+
+axs[0].plot(epoch_count, training_loss, 'r--')
+axs[0].plot(epoch_count, validation_loss, 'b-')
+axs[0].legend(['Training Loss', 'Validation Loss'])
+
+axs[1].plot(epoch_count, training_accuracy, 'r--')
+axs[1].plot(epoch_count, validation_accuracy, 'b-')
+axs[1].legend(['Training Accuracy', 'Validation Accuracy'])
+
+plt.savefig('seg_unet_lungs_results.jpg', bbox_inches='tight')
