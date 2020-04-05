@@ -22,7 +22,7 @@ from keras.callbacks import ModelCheckpoint, LearningRateScheduler
 from glob import glob
 from tqdm import tqdm
 
-INPUT_DIR = os.path.join("~", "Lab_Data_Keras")
+INPUT_DIR = os.path.join("~", "Lab0_Data_Keras")
 
 SEGMENTATION_DIR = os.path.join(INPUT_DIR, "segmentation")
 SEGMENTATION_TEST_DIR = os.path.join(SEGMENTATION_DIR, "test")
