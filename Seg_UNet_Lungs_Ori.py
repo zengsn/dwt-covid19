@@ -54,6 +54,8 @@ EPOCHS=56
 #Desv
 #EPOCHS=16
 
+IN_SIZE = 128 # 256, 512
+
 montgomery_left_mask_dir = glob(os.path.join(MONTGOMERY_LEFT_MASK_DIR, '*.png'))
 montgomery_test = montgomery_left_mask_dir[0:50]
 montgomery_train= montgomery_left_mask_dir[50:]
@@ -67,9 +69,9 @@ for left_image_file in tqdm(montgomery_left_mask_dir):
     left_mask = cv2.imread(left_image_file, cv2.IMREAD_GRAYSCALE)
     right_mask = cv2.imread(right_image_file, cv2.IMREAD_GRAYSCALE)
     
-    image = cv2.resize(image, (128, 128))
-    left_mask = cv2.resize(left_mask, (128, 128))
-    right_mask = cv2.resize(right_mask, (128, 128))
+    image = cv2.resize(image, (IN_SIZE, IN_SIZE))
+    left_mask = cv2.resize(left_mask, (IN_SIZE, IN_SIZE))
+    right_mask = cv2.resize(right_mask, (IN_SIZE, IN_SIZE))
     
     mask = np.maximum(left_mask, right_mask)
     mask_dilate = cv2.dilate(mask, DILATE_KERNEL, iterations=1)
@@ -144,8 +146,8 @@ for mask_file in tqdm(shenzhen_mask_dir):
     image = cv2.imread(image_file)
     mask = cv2.imread(mask_file, cv2.IMREAD_GRAYSCALE)
         
-    image = cv2.resize(image, (128, 128))
-    mask = cv2.resize(mask, (128, 128))
+    image = cv2.resize(image, (IN_SIZE, IN_SIZE))
+    mask = cv2.resize(mask, (IN_SIZE, IN_SIZE))
     mask_dilate = cv2.dilate(mask, DILATE_KERNEL, iterations=1)
     
     if (mask_file in shenzhen_train):
@@ -314,8 +316,8 @@ test_files = [test_file for test_file in glob(os.path.join(SEGMENTATION_TEST_DIR
                   and "_dilate" not in test_file \
                   and "_predict" not in test_file)]
 
-validation_data = (test_load_image(test_files[0], target_size=(128, 128)),
-                    test_load_image(add_suffix(test_files[0], "dilate"), target_size=(128, 128)))
+validation_data = (test_load_image(test_files[0], target_size=(IN_SIZE, IN_SIZE)),
+                    test_load_image(add_suffix(test_files[0], "dilate"), target_size=(IN_SIZE, IN_SIZE)))
 
 len(test_files), len(validation_data)
 
@@ -332,10 +334,10 @@ train_gen = train_generator(BATCH_SIZE,
                             'image',
                             'dilate', 
                             train_generator_args,
-                            target_size=(128,128),
+                            target_size=(IN_SIZE,IN_SIZE),
                             save_to_dir=os.path.abspath(SEGMENTATION_AUG_DIR))
 
-model = unet(input_size=(128,128,1))
+model = unet(input_size=(IN_SIZE,IN_SIZE,1))
 model.compile(optimizer=Adam(lr=1e-5), loss=dice_coef_loss, \
                   metrics=[dice_coef, 'binary_accuracy'])
 model.summary()
