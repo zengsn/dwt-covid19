@@ -367,10 +367,11 @@ else: # load the trained model
 #save_result(SEGMENTATION_TEST_DIR, results, test_files)
 
 def test_customized_dir(model, test_dir, test_ext):
-  test_files = [test_file for test_file in glob(os.path.join(test_dir,test_ext)) \
-              if ("_mask" not in test_file \
-                  and "_dilate" not in test_file \
-                  and "_predict" not in test_file)]
+  #test_files = [test_file for test_file in glob(os.path.join(test_dir,test_ext)) \
+  #            if ("_mask" not in test_file \
+  #                and "_dilate" not in test_file \
+  #                and "_predict" not in test_file)]
+  test_files = glob(os.path.join(test_dir,test_ext))
   print("Found %d test files." % len(test_files))
   test_gen = test_generator(test_files, target_size=(IN_SIZE,IN_SIZE))
   results = model.predict_generator(test_gen, len(test_files), verbose=1)
