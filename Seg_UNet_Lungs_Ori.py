@@ -371,7 +371,7 @@ def test_customized_dir(model, test_dir, test_ext):
               if ("_mask" not in test_file \
                   and "_dilate" not in test_file \
                   and "_predict" not in test_file)]
-  print("Found %d test files.", len(test_files))
+  print("Found %d test files." % len(test_files))
   test_gen = test_generator(test_files, target_size=(IN_SIZE,IN_SIZE))
   results = model.predict_generator(test_gen, len(test_files), verbose=1)
   save_result(test_dir, results, test_files)
