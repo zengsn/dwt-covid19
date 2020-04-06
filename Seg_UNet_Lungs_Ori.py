@@ -342,7 +342,8 @@ train_gen = train_generator(BATCH_SIZE,
 model = unet(input_size=(IN_SIZE,IN_SIZE,1))
 model.compile(optimizer=Adam(lr=1e-5), loss=dice_coef_loss, \
                   metrics=[dice_coef, 'binary_accuracy'])
-model.summary()
+if not os.path.exists('unet_lung_seg.hdf5'): 
+  model.summary() # only print it when going to train
 
 model_checkpoint = ModelCheckpoint('unet_lung_seg.hdf5', 
                                    monitor='loss', 
@@ -370,7 +371,7 @@ def test_customized_dir(model, test_dir, test_ext):
               if ("_mask" not in test_file \
                   and "_dilate" not in test_file \
                   and "_predict" not in test_file)]
-  len(test_files)
+  print("Found %d test files.", len(test_files))
   test_gen = test_generator(test_files, target_size=(IN_SIZE,IN_SIZE))
   results = model.predict_generator(test_gen, len(test_files), verbose=1)
   save_result(test_dir, results, test_files)
