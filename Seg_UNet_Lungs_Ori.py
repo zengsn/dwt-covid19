@@ -56,41 +56,42 @@ EPOCHS=56
 
 IN_SIZE = 128 # 256, 512
 
-montgomery_left_mask_dir = glob(os.path.join(MONTGOMERY_LEFT_MASK_DIR, '*.png'))
-montgomery_test = montgomery_left_mask_dir[0:50]
-montgomery_train= montgomery_left_mask_dir[50:]
-
-for left_image_file in tqdm(montgomery_left_mask_dir):
-    base_file = os.path.basename(left_image_file)
-    image_file = os.path.join(MONTGOMERY_IMAGE_DIR, base_file)
-    right_image_file = os.path.join(MONTGOMERY_RIGHT_MASK_DIR, base_file)
-
-    image = cv2.imread(image_file)
-    left_mask = cv2.imread(left_image_file, cv2.IMREAD_GRAYSCALE)
-    right_mask = cv2.imread(right_image_file, cv2.IMREAD_GRAYSCALE)
-    
-    image = cv2.resize(image, (IN_SIZE, IN_SIZE))
-    left_mask = cv2.resize(left_mask, (IN_SIZE, IN_SIZE))
-    right_mask = cv2.resize(right_mask, (IN_SIZE, IN_SIZE))
-    
-    mask = np.maximum(left_mask, right_mask)
-    mask_dilate = cv2.dilate(mask, DILATE_KERNEL, iterations=1)
-    
-    if (left_image_file in montgomery_train):
-        cv2.imwrite(os.path.join(SEGMENTATION_IMAGE_DIR, base_file), \
-                    image)
-        cv2.imwrite(os.path.join(SEGMENTATION_MASK_DIR, base_file), \
-                    mask)
-        cv2.imwrite(os.path.join(SEGMENTATION_DILATE_DIR, base_file), \
-                    mask_dilate)
-    else:
-        filename, fileext = os.path.splitext(base_file)
-        cv2.imwrite(os.path.join(SEGMENTATION_TEST_DIR, base_file), \
-                    image)
-        cv2.imwrite(os.path.join(SEGMENTATION_TEST_DIR, \
-                                 "%s_mask%s" % (filename, fileext)), mask)
-        cv2.imwrite(os.path.join(SEGMENTATION_TEST_DIR, \
-                                 "%s_dilate%s" % (filename, fileext)), mask_dilate)
+if not os.path.exists('unet_lung_seg.hdf5'): # if not trained
+  montgomery_left_mask_dir = glob(os.path.join(MONTGOMERY_LEFT_MASK_DIR, '*.png'))
+  montgomery_test = montgomery_left_mask_dir[0:50]
+  montgomery_train= montgomery_left_mask_dir[50:]
+  
+  for left_image_file in tqdm(montgomery_left_mask_dir):
+      base_file = os.path.basename(left_image_file)
+      image_file = os.path.join(MONTGOMERY_IMAGE_DIR, base_file)
+      right_image_file = os.path.join(MONTGOMERY_RIGHT_MASK_DIR, base_file)
+  
+      image = cv2.imread(image_file)
+      left_mask = cv2.imread(left_image_file, cv2.IMREAD_GRAYSCALE)
+      right_mask = cv2.imread(right_image_file, cv2.IMREAD_GRAYSCALE)
+      
+      image = cv2.resize(image, (IN_SIZE, IN_SIZE))
+      left_mask = cv2.resize(left_mask, (IN_SIZE, IN_SIZE))
+      right_mask = cv2.resize(right_mask, (IN_SIZE, IN_SIZE))
+      
+      mask = np.maximum(left_mask, right_mask)
+      mask_dilate = cv2.dilate(mask, DILATE_KERNEL, iterations=1)
+      
+      if (left_image_file in montgomery_train):
+          cv2.imwrite(os.path.join(SEGMENTATION_IMAGE_DIR, base_file), \
+                      image)
+          cv2.imwrite(os.path.join(SEGMENTATION_MASK_DIR, base_file), \
+                      mask)
+          cv2.imwrite(os.path.join(SEGMENTATION_DILATE_DIR, base_file), \
+                      mask_dilate)
+      else:
+          filename, fileext = os.path.splitext(base_file)
+          cv2.imwrite(os.path.join(SEGMENTATION_TEST_DIR, base_file), \
+                      image)
+          cv2.imwrite(os.path.join(SEGMENTATION_TEST_DIR, \
+                                   "%s_mask%s" % (filename, fileext)), mask)
+          cv2.imwrite(os.path.join(SEGMENTATION_TEST_DIR, \
+                                   "%s_dilate%s" % (filename, fileext)), mask_dilate)
 
 def add_colored_dilate(image, mask_image, dilate_image):
     mask_image_gray = cv2.cvtColor(mask_image, cv2.COLOR_BGR2GRAY)
@@ -135,37 +136,38 @@ def diff_mask(ref_image, mask_image):
     ret = cv2.addWeighted(ref_image, 0.7, mask, 0.3, 0)
     return ret
 
-shenzhen_mask_dir = glob(os.path.join(SHENZHEN_MASK_DIR, '*.png'))
-shenzhen_test = shenzhen_mask_dir[0:50]
-shenzhen_train= shenzhen_mask_dir[50:]
-
-for mask_file in tqdm(shenzhen_mask_dir):
-    base_file = os.path.basename(mask_file).replace("_mask", "")
-    image_file = os.path.join(SHENZHEN_IMAGE_DIR, base_file)
-
-    image = cv2.imread(image_file)
-    mask = cv2.imread(mask_file, cv2.IMREAD_GRAYSCALE)
-        
-    image = cv2.resize(image, (IN_SIZE, IN_SIZE))
-    mask = cv2.resize(mask, (IN_SIZE, IN_SIZE))
-    mask_dilate = cv2.dilate(mask, DILATE_KERNEL, iterations=1)
-    
-    if (mask_file in shenzhen_train):
-        cv2.imwrite(os.path.join(SEGMENTATION_IMAGE_DIR, base_file), \
-                    image)
-        cv2.imwrite(os.path.join(SEGMENTATION_MASK_DIR, base_file), \
-                    mask)
-        cv2.imwrite(os.path.join(SEGMENTATION_DILATE_DIR, base_file), \
-                    mask_dilate)
-    else:
-        filename, fileext = os.path.splitext(base_file)
-
-        cv2.imwrite(os.path.join(SEGMENTATION_TEST_DIR, base_file), \
-                    image)
-        cv2.imwrite(os.path.join(SEGMENTATION_TEST_DIR, \
-                                 "%s_mask%s" % (filename, fileext)), mask)
-        cv2.imwrite(os.path.join(SEGMENTATION_TEST_DIR, \
-                                 "%s_dilate%s" % (filename, fileext)), mask_dilate)
+if not os.path.exists('unet_lung_seg.hdf5'): # if not trained
+  shenzhen_mask_dir = glob(os.path.join(SHENZHEN_MASK_DIR, '*.png'))
+  shenzhen_test = shenzhen_mask_dir[0:50]
+  shenzhen_train= shenzhen_mask_dir[50:]
+  
+  for mask_file in tqdm(shenzhen_mask_dir):
+      base_file = os.path.basename(mask_file).replace("_mask", "")
+      image_file = os.path.join(SHENZHEN_IMAGE_DIR, base_file)
+  
+      image = cv2.imread(image_file)
+      mask = cv2.imread(mask_file, cv2.IMREAD_GRAYSCALE)
+          
+      image = cv2.resize(image, (IN_SIZE, IN_SIZE))
+      mask = cv2.resize(mask, (IN_SIZE, IN_SIZE))
+      mask_dilate = cv2.dilate(mask, DILATE_KERNEL, iterations=1)
+      
+      if (mask_file in shenzhen_train):
+          cv2.imwrite(os.path.join(SEGMENTATION_IMAGE_DIR, base_file), \
+                      image)
+          cv2.imwrite(os.path.join(SEGMENTATION_MASK_DIR, base_file), \
+                      mask)
+          cv2.imwrite(os.path.join(SEGMENTATION_DILATE_DIR, base_file), \
+                      mask_dilate)
+      else:
+          filename, fileext = os.path.splitext(base_file)
+  
+          cv2.imwrite(os.path.join(SEGMENTATION_TEST_DIR, base_file), \
+                      image)
+          cv2.imwrite(os.path.join(SEGMENTATION_TEST_DIR, \
+                                   "%s_mask%s" % (filename, fileext)), mask)
+          cv2.imwrite(os.path.join(SEGMENTATION_TEST_DIR, \
+                                   "%s_dilate%s" % (filename, fileext)), mask_dilate)
         
 train_files = glob(os.path.join(SEGMENTATION_IMAGE_DIR, "*.png"))
 test_files = glob(os.path.join(SEGMENTATION_TEST_DIR, "*.png"))
@@ -356,6 +358,7 @@ if not os.path.exists('unet_lung_seg.hdf5'):
 else: # load the trained model
   history = None
   model.load_weights('unet_lung_seg.hdf5')
+  print("Load pre-trained unet_lung_seg.hdf5")
 
 # Test original test samples
 #test_gen = test_generator(test_files, target_size=(IN_SIZE,IN_SIZE))
