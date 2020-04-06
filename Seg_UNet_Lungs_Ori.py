@@ -357,10 +357,52 @@ else: # load the trained model
   history = None
   model.load_weights('unet_lung_seg.hdf5')
 
-# Test
-test_gen = test_generator(test_files, target_size=(IN_SIZE,IN_SIZE))
-results = model.predict_generator(test_gen, len(test_files), verbose=1)
-save_result(SEGMENTATION_TEST_DIR, results, test_files)
+# Test original test samples
+#test_gen = test_generator(test_files, target_size=(IN_SIZE,IN_SIZE))
+#results = model.predict_generator(test_gen, len(test_files), verbose=1)
+#save_result(SEGMENTATION_TEST_DIR, results, test_files)
+
+def test_customized_dir(model, test_dir, test_ext):
+  test_files = [test_file for test_file in glob(os.path.join(test_dir,test_ext)) \
+              if ("_mask" not in test_file \
+                  and "_dilate" not in test_file \
+                  and "_predict" not in test_file)]
+  len(test_files)
+  test_gen = test_generator(test_files, target_size=(IN_SIZE,IN_SIZE))
+  results = model.predict_generator(test_gen, len(test_files), verbose=1)
+  save_result(test_dir, results, test_files)
+
+# Test COVID-19 samples
+SEGMENTATION_COVID19_DIR = os.path.join(INPUT_DIR, "covid-19")
+# dataset100
+SEGMENTATION_COVID19_DATA100_DIR = os.path.join(SEGMENTATION_COVID19_DIR, "dataset100")
+# - covid
+SEGMENTATION_COVID19_DATA100_C_DIR = os.path.join(SEGMENTATION_COVID19_DATA100_DIR, "covid")
+test_customized_dir(model, SEGMENTATION_COVID19_DATA100_C_DIR, ".png")
+test_customized_dir(model, SEGMENTATION_COVID19_DATA100_C_DIR, ".jpg")
+test_customized_dir(model, SEGMENTATION_COVID19_DATA100_C_DIR, ".jpeg")
+# - normal
+SEGMENTATION_COVID19_DATA100_N_DIR = os.path.join(SEGMENTATION_COVID19_DATA100_DIR, "normal")
+test_customized_dir(model, SEGMENTATION_COVID19_DATA100_N_DIR, ".png")
+test_customized_dir(model, SEGMENTATION_COVID19_DATA100_N_DIR, ".jpg")
+test_customized_dir(model, SEGMENTATION_COVID19_DATA100_N_DIR, ".jpeg")
+# dataset100
+SEGMENTATION_COVID19_DATA300_DIR = os.path.join(SEGMENTATION_COVID19_DIR, "dataset300")
+# - covid
+SEGMENTATION_COVID19_DATA300_C_DIR = os.path.join(SEGMENTATION_COVID19_DATA300_DIR, "covid")
+test_customized_dir(model, SEGMENTATION_COVID19_DATA300_C_DIR, ".png")
+test_customized_dir(model, SEGMENTATION_COVID19_DATA300_C_DIR, ".jpg")
+test_customized_dir(model, SEGMENTATION_COVID19_DATA300_C_DIR, ".jpeg")
+# - normal
+SEGMENTATION_COVID19_DATA300_N_DIR = os.path.join(SEGMENTATION_COVID19_DATA300_DIR, "normal")
+test_customized_dir(model, SEGMENTATION_COVID19_DATA300_N_DIR, ".png")
+test_customized_dir(model, SEGMENTATION_COVID19_DATA300_N_DIR, ".jpg")
+test_customized_dir(model, SEGMENTATION_COVID19_DATA300_N_DIR, ".jpeg")
+# - pneumnia
+SEGMENTATION_COVID19_DATA300_P_DIR = os.path.join(SEGMENTATION_COVID19_DATA300_DIR, "pneumnia")
+test_customized_dir(model, SEGMENTATION_COVID19_DATA300_P_DIR, ".png")
+test_customized_dir(model, SEGMENTATION_COVID19_DATA300_P_DIR, ".jpg")
+test_customized_dir(model, SEGMENTATION_COVID19_DATA300_P_DIR, ".jpeg")
 
 if history is not None: # Plot training history
   fig, axs = plt.subplots(1, 2, figsize = (15, 4))
