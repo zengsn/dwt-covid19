@@ -366,7 +366,6 @@ class SegUNetLungs:
         img, mask = adjust_data(img, mask)
         yield (img,mask)
 
-
   def build_model(self, input_size=(256,256,1)):
     inputs = Input(input_size)    
     conv1 = Conv2D(32, (3, 3), activation='relu', padding='same')(inputs)
@@ -500,7 +499,7 @@ class SegUNetLungs:
     
     train_gen = self.train_generator(
       self.batch_size, self.seg_train_dir, 'image','dilate', 
-      train_generator_args,target_size=(in_size,in_size),
+      train_generator_args, target_size=(in_size,in_size),
       save_to_dir=os.path.abspath(self.seg_train_aug_dir))
     
     model= self.model

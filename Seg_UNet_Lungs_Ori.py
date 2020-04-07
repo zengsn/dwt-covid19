@@ -377,41 +377,35 @@ def test_customized_dir(model, test_dir, test_ext):
   save_result(test_dir, results, test_files)
 
 # Test COVID-19 samples
-SEGMENTATION_COVID19_DIR = os.path.join(INPUT_DIR, "covid-19")
+SEGMENTATION_COVID19_DIR = os.path.join(INPUT_DIR, "covid-19-seg-crop")
 # dataset100
-SEGMENTATION_COVID19_DATA100_DIR = os.path.join(SEGMENTATION_COVID19_DIR, "dataset100")
+SEGMENTATION_COVID19_DATA_DIR = os.path.join(SEGMENTATION_COVID19_DIR, "dataset200")
 # - covid
-SEGMENTATION_COVID19_DATA100_C_DIR = os.path.join(SEGMENTATION_COVID19_DATA100_DIR, "covid")
-print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA100_C_DIR, str(os.path.exists(SEGMENTATION_COVID19_DATA100_C_DIR))))
-test_customized_dir(model, SEGMENTATION_COVID19_DATA100_C_DIR, "*.png")
-test_customized_dir(model, SEGMENTATION_COVID19_DATA100_C_DIR, "*.jpg")
-test_customized_dir(model, SEGMENTATION_COVID19_DATA100_C_DIR, "*.jpeg")
+SEGMENTATION_COVID19_DATA_SUBDIR = os.path.join(SEGMENTATION_COVID19_DATA_DIR, "covid")
+print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA_SUBDIR, str(os.path.exists(SEGMENTATION_COVID19_DATA_SUBDIR))))
+test_customized_dir(model, SEGMENTATION_COVID19_DATA_SUBDIR, "*.png")
 # - normal
-SEGMENTATION_COVID19_DATA100_N_DIR = os.path.join(SEGMENTATION_COVID19_DATA100_DIR, "normal")
-print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA100_N_DIR, str(os.path.exists(SEGMENTATION_COVID19_DATA100_N_DIR))))
-test_customized_dir(model, SEGMENTATION_COVID19_DATA100_N_DIR, "*.png")
-test_customized_dir(model, SEGMENTATION_COVID19_DATA100_N_DIR, "*.jpg")
-test_customized_dir(model, SEGMENTATION_COVID19_DATA100_N_DIR, "*.jpeg")
+SEGMENTATION_COVID19_DATA_SUBDIR = os.path.join(SEGMENTATION_COVID19_DATA_DIR, "ncovid")
+print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA_SUBDIR, str(os.path.exists(SEGMENTATION_COVID19_DATA_SUBDIR))))
+test_customized_dir(model, SEGMENTATION_COVID19_DATA_SUBDIR, "*.png")
 # dataset100
-SEGMENTATION_COVID19_DATA300_DIR = os.path.join(SEGMENTATION_COVID19_DIR, "dataset300")
+SEGMENTATION_COVID19_DATA_DIR = os.path.join(SEGMENTATION_COVID19_DIR, "dataset400")
 # - covid
-SEGMENTATION_COVID19_DATA300_C_DIR = os.path.join(SEGMENTATION_COVID19_DATA300_DIR, "covid")
-print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA300_C_DIR, str(os.path.exists(SEGMENTATION_COVID19_DATA300_C_DIR))))
-test_customized_dir(model, SEGMENTATION_COVID19_DATA300_C_DIR, "*.png")
-test_customized_dir(model, SEGMENTATION_COVID19_DATA300_C_DIR, "*.jpg")
-test_customized_dir(model, SEGMENTATION_COVID19_DATA300_C_DIR, "*.jpeg")
+SEGMENTATION_COVID19_DATA_SUBDIR = os.path.join(SEGMENTATION_COVID19_DATA_DIR, "covid")
+print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA_SUBDIR, str(os.path.exists(SEGMENTATION_COVID19_DATA_SUBDIR))))
+test_customized_dir(model, SEGMENTATION_COVID19_DATA_SUBDIR, "*.png")
 # - normal
-SEGMENTATION_COVID19_DATA300_N_DIR = os.path.join(SEGMENTATION_COVID19_DATA300_DIR, "normal")
-print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA300_N_DIR, str(os.path.exists(SEGMENTATION_COVID19_DATA300_N_DIR))))
-test_customized_dir(model, SEGMENTATION_COVID19_DATA300_N_DIR, "*.png")
-test_customized_dir(model, SEGMENTATION_COVID19_DATA300_N_DIR, "*.jpg")
-test_customized_dir(model, SEGMENTATION_COVID19_DATA300_N_DIR, "*.jpeg")
+SEGMENTATION_COVID19_DATA_SUBDIR = os.path.join(SEGMENTATION_COVID19_DATA_DIR, "normal")
+print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA_SUBDIR, str(os.path.exists(SEGMENTATION_COVID19_DATA_SUBDIR))))
+test_customized_dir(model, SEGMENTATION_COVID19_DATA_SUBDIR, "*.png")
 # - pneumnia
-SEGMENTATION_COVID19_DATA300_P_DIR = os.path.join(SEGMENTATION_COVID19_DATA300_DIR, "pneumnia")
-print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA300_P_DIR, str(os.path.exists(SEGMENTATION_COVID19_DATA300_P_DIR))))
-test_customized_dir(model, SEGMENTATION_COVID19_DATA300_P_DIR, "*.png")
-test_customized_dir(model, SEGMENTATION_COVID19_DATA300_P_DIR, "*.jpg")
-test_customized_dir(model, SEGMENTATION_COVID19_DATA300_P_DIR, "*.jpeg")
+SEGMENTATION_COVID19_DATA_SUBDIR = os.path.join(SEGMENTATION_COVID19_DATA_DIR, "pneumnia")
+print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA_SUBDIR, str(os.path.exists(SEGMENTATION_COVID19_DATA_SUBDIR))))
+test_customized_dir(model, SEGMENTATION_COVID19_DATA_SUBDIR, "*.png")
+# - others
+SEGMENTATION_COVID19_DATA_SUBDIR = os.path.join(SEGMENTATION_COVID19_DATA_DIR, "others")
+print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA_SUBDIR, str(os.path.exists(SEGMENTATION_COVID19_DATA_SUBDIR))))
+test_customized_dir(model, SEGMENTATION_COVID19_DATA_SUBDIR, "*.png")
 
 if history is not None: # Plot training history
   fig, axs = plt.subplots(1, 2, figsize = (15, 4))
