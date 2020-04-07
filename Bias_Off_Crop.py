@@ -12,8 +12,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import patches 
 
-SAVE_PROGRESS = False
 N_SKIP = 3
+SAVE_PROGRESS = False
 
 def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict"):
   """
@@ -52,7 +52,7 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict"):
   mask_image = cv2.cvtColor(mask_image, cv2.COLOR_BGR2GRAY)
   #mask_image = cv2.resize(mask_image, in_image.shape[:-1])
   ret, mask_image=cv2.threshold(mask_image,127,255,cv2.THRESH_BINARY)
-  #print("Mask image shape is %s, %s" % (str(mask_image.shape), str(ret))) 
+  print("Mask image shape is %s, %s" % (str(mask_image.shape), str(ret))) 
   
   # Scale rate between input and mask
   scale_h = int(in_image.shape[0] / mask_image.shape[0])
@@ -163,8 +163,9 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict"):
   # Find the column containing the fewest 255
   min_total_255 = mask_image.shape[0]
   start_x = int(left+0.5*(right-left)-0.2*mask_image.shape[1])
+  end_x   = int(left+0.5*(right-left)+0.2*mask_image.shape[1])
   min_total_255_x = start_x 
-  for i in range(start_x,right):
+  for i in range(start_x,end_x):
     unique, counts = np.unique(mask_image[:,i], return_counts=True)
     assert len(unique) == 2 # only 0 and 255
     # dict(zip(unique, counts))
