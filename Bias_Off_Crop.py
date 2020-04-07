@@ -456,6 +456,11 @@ def trim_rectangle(mask, left_right=True):
   tl = top_left
   br = bottom_right
   
+  # check if zero size
+  if br[0]-tl[0]<10 or br[1]-tl[1]<10: 
+    tl = [0, 0]
+    br = [h, w]   
+  
   return [tl, br]
 
 def get_smallest_size(A, B, C, D):

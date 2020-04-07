@@ -37,7 +37,8 @@ if __name__ == '__main__':
   #test_image_path = os.path.join(data_dir, "normal", "NORMAL2-IM-0753-0001.jpeg")
   #test_image_path = os.path.join(data_dir, "pneumnia", "person1306_bacteria_3272.jpeg")
   #test_image_path = os.path.join(data_dir, "pneumnia", "person1343_bacteria_3411.jpeg")
-  test_image_path = os.path.join(data_dir, "pneumnia", "person1619_bacteria_4269.jpeg")
+  #test_image_path = os.path.join(data_dir, "pneumnia", "person1619_bacteria_4269.jpeg")
+  test_image_path = os.path.join(data_dir, "pneumnia", "person253_bacteria_1156.jpeg")
   assert os.path.isfile(test_image_path), "File not found!"
   
   # Test test_get_smallest_size()
