@@ -12,7 +12,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import patches 
 
-SAVE_PROGRESS = True
+SAVE_PROGRESS = False
 N_SKIP = 3
 
 def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict"):
@@ -40,24 +40,24 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict"):
   # Read the images
   in_image = cv2.imread(in_image_path)
   in_image = cv2.cvtColor(in_image, cv2.COLOR_BGR2RGB)
-  print("Input image shape is %s" % str(in_image.shape))
+  #print("Input image shape is %s" % str(in_image.shape))
   min_size = in_image.shape[0]
   if min_size > in_image.shape[1]:
     min_size = in_image.shape[1]
   in_image = cv2.resize(in_image, (min_size,min_size))
   in_image_ori = in_image
-  print("Input image is resized to %s" % str(in_image.shape))
+  #print("Input image is resized to %s" % str(in_image.shape))
   mask_image = cv2.imread(mask_image_path)
   #mask_image = cv2.cvtColor(mask_image, cv2.COLOR_BGR2RGB)
   mask_image = cv2.cvtColor(mask_image, cv2.COLOR_BGR2GRAY)
   #mask_image = cv2.resize(mask_image, in_image.shape[:-1])
   ret, mask_image=cv2.threshold(mask_image,127,255,cv2.THRESH_BINARY)
-  print("Mask image shape is %s, %s" % (str(mask_image.shape), str(ret))) 
+  #print("Mask image shape is %s, %s" % (str(mask_image.shape), str(ret))) 
   
   # Scale rate between input and mask
   scale_h = int(in_image.shape[0] / mask_image.shape[0])
   scale_w = int(in_image.shape[1] / mask_image.shape[1])
-  print("Scale rate (h, w): (%d, %d)" % (scale_h, scale_w))
+  #print("Scale rate (h, w): (%d, %d)" % (scale_h, scale_w))
   scale_rate = scale_h # = scale_w
   
   if SAVE_PROGRESS:
@@ -111,10 +111,10 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict"):
         break 
   
   # Locate the center point
-  start_row = 0
+  start_row = 10
   # - skip some rows
   num_good_rows = 0
-  for i in range(top,bottom): # from top to bottom
+  for i in range(start_row,bottom): # from top to bottom
     # go to 00011111110000 area
     num_div = 1
     first_255 = 0
@@ -137,32 +137,53 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict"):
         break # make sure 
     else: #
       num_good_rows = 0
-  print("start_row = %d" % start_row)
+  #print("start_row = %d" % start_row)
   # - start to match the center point
-  center_x = 0
-  center_y = start_row  
-  for i in range(start_row, bottom): # from top to bottom
-    if center_x>0 and center_y>start_row: # found
+#   center_x = 0
+#   center_y = start_row  
+#   for i in range(start_row, bottom): # from top to bottom
+#     if center_x>0 and center_y>start_row: # found
+#       break
+#     # find the center point 0001111110111111100000
+#     met_255 = False 
+#     met_255_0 = False
+#     for j in range(left, right): # from left to right
+#       if mask_image[i,j]==255:
+#         if not met_255: # not met 255 before,
+#           met_255 = True # mark we got 1 already
+#         elif met_255_0: # met both 255 and 0
+#           # restrict center_x around center of image
+#           if abs(j-(left+0.5*(right-left)))<0.1*mask_image.shape[1]:
+#             # otherwise, segmentation is not good 
+#             center_x = j # this is the center we want
+#             center_y = i # save it 
+#             break # this is where we want
+#       if mask_image[i,j]==0 and met_255 and not met_255_0: # meet 0 after 255
+#         met_255_0 = True   
+  # Find the column containing the fewest 255
+  min_total_255 = mask_image.shape[0]
+  start_x = int(left+0.5*(right-left)-0.2*mask_image.shape[1])
+  min_total_255_x = start_x 
+  for i in range(start_x,right):
+    unique, counts = np.unique(mask_image[:,i], return_counts=True)
+    assert len(unique) == 2 # only 0 and 255
+    # dict(zip(unique, counts))
+    total_255 = counts[1]
+    if total_255 < min_total_255: 
+      min_total_255 = total_255
+      min_total_255_x = i
+  center_x = min_total_255_x
+  center_y = bottom
+  for i in range(bottom,top,-1):
+    if mask_image[i,min_total_255_x]==255:
+      center_y = i
       break
-    # find the center point 0001111110111111100000
-    met_255 = False 
-    met_255_0 = False
-    for j in range(left, right): # from left to right
-      if mask_image[i,j]==255:
-        if not met_255: # not met 255 before,
-          met_255 = True # mark we got 1 already
-        elif met_255_0: # met both 255 and 0
-          center_x = j # this is the center we want
-          center_y = i # save it 
-          break # this is where we want
-      if mask_image[i,j]==0 and met_255 and not met_255_0: # meet 0 after 255
-        met_255_0 = True    
-      
-  assert (center_x>0 and center_y>start_row)
   
   # Print the results
   print("top:%d, bottom:%d, left:%d, right:%d, center_x:%d, center_y:%d"  % \
-        (top, bottom, left, right, center_x, center_y))
+        (top, bottom, left, right, center_x, center_y))      
+  assert (center_x>0 and center_y>start_row)
+  # x - columns, y - rows
   
   # Split image to left and right based on the center (x,y)
   mask_left  = mask_image[:,left:center_x] 
@@ -366,7 +387,7 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict"):
   
   # Resize them to the smallest rectangle
   h, w = get_smallest_size(A, B, C, D)
-  print("Resized to smallest size (%d, %d)" % (h, w))
+  #print("Resized to smallest size (%d, %d)" % (h, w))
   A = cv2.resize(A, (w,h))
   B = cv2.resize(B, (w,h))
   C = cv2.resize(C, (w,h))
@@ -374,7 +395,7 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict"):
   
   # Compose them to one image
   crop_image = np.zeros([h*2,w*2,3])
-  print("Composed image shape: %s" % str(crop_image.shape))
+  #print("Composed image shape: %s" % str(crop_image.shape))
   crop_image[0:1*h,0:1*w,:] = A
   crop_image[0:1*h,w:2*w,:] = B
   crop_image[h:2*h,0:1*w,:] = C
