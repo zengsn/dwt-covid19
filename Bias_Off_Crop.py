@@ -167,7 +167,8 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict"):
   min_total_255_x = start_x 
   for i in range(start_x,end_x):
     unique, counts = np.unique(mask_image[:,i], return_counts=True)
-    assert len(unique) == 2 # only 0 and 255
+    if len(unique) < 2: # may only 0
+      continue
     # dict(zip(unique, counts))
     total_255 = counts[1]
     if total_255 < min_total_255: 
@@ -181,9 +182,9 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict"):
       break
   
   # Print the results
-  print("top:%d, bottom:%d, left:%d, right:%d, center_x:%d, center_y:%d"  % \
-        (top, bottom, left, right, center_x, center_y))      
-  assert (center_x>0 and center_y>start_row)
+  print("top:%d, bottom:%d, left:%d, right:%d, center_x:%d, center_y:%d, start_row:%d"  % \
+        (top, bottom, left, right, center_x, center_y, start_row))      
+  assert (center_x>0 and center_y>0)
   # x - columns, y - rows
   
   # Split image to left and right based on the center (x,y)
@@ -430,23 +431,23 @@ def trim_rectangle(mask, left_right=True):
   top_left = [N_SKIP, N_SKIP]
   bottom_right = [h-N_SKIP, w-N_SKIP]
   if left_right:
-    for i in range(N_SKIP,h-N_SKIP):
+    for i in range(N_SKIP,h-N_SKIP-1):
       if mask[i,i]==255:
         top_left = [i,i]
         break
-    for i in range(N_SKIP,h-N_SKIP):
+    for i in range(N_SKIP,h-N_SKIP-1):
       if mask[h-N_SKIP-i,w-N_SKIP-i]==255:
         bottom_right = [h-N_SKIP-i,w-N_SKIP-i]
         break
   else: # right to left
-    top_right = [h-N_SKIP,N_SKIP]
-    for i in range(N_SKIP,h-N_SKIP):
-      if mask[i,w-N_SKIP-i]==255:
+    top_right = [h-N_SKIP-1,N_SKIP]
+    for i in range(N_SKIP,h-N_SKIP-1):
+      if i<h and mask[i,w-N_SKIP-i]==255:
         top_right = [h-N_SKIP-i,i]
         break
-    bottom_left = [N_SKIP, w-N_SKIP]
-    for i in range(N_SKIP,h-N_SKIP):
-      if mask[h-N_SKIP-i,i]==255:
+    bottom_left = [N_SKIP, w-N_SKIP-1]
+    for i in range(N_SKIP,h-N_SKIP-1):
+      if i<w and mask[h-N_SKIP-i,i]==255:
         bottom_left = [i,w-N_SKIP-i]
         break
     top_left = [bottom_left[0],top_right[1]]

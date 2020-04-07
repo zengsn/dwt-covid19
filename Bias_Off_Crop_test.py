@@ -31,9 +31,13 @@ if __name__ == '__main__':
   
   data_dir = "/Volumes/SanDisk256B/Lab0_Data_Keras/covid-19-predict/dataset300/"
   #test_image_path = os.path.join(data_dir, "covid", "covid-19-pneumonia-2.jpg")
-  test_image_path = os.path.join(data_dir, "covid", "1-s2.0-S0140673620303706-fx1_lrg.jpg")
+  #test_image_path = os.path.join(data_dir, "covid", "1-s2.0-S0140673620303706-fx1_lrg.jpg")
+  #test_image_path = os.path.join(data_dir, "covid", "covid-19-infection-exclusive-gastrointestinal-symptoms-l.png")
   #test_image_path = os.path.join(data_dir, "covid", "covid-19-pneumonia-7-PA.jpg")
   #test_image_path = os.path.join(data_dir, "normal", "NORMAL2-IM-0753-0001.jpeg")
+  #test_image_path = os.path.join(data_dir, "pneumnia", "person1306_bacteria_3272.jpeg")
+  #test_image_path = os.path.join(data_dir, "pneumnia", "person1343_bacteria_3411.jpeg")
+  test_image_path = os.path.join(data_dir, "pneumnia", "person1619_bacteria_4269.jpeg")
   assert os.path.isfile(test_image_path), "File not found!"
   
   # Test test_get_smallest_size()
