@@ -376,34 +376,45 @@ def test_customized_dir(model, test_dir, test_ext):
   results = model.predict_generator(test_gen, len(test_files), verbose=1)
   save_result(test_dir, results, test_files)
 
-# Test COVID-19 samples
-SEGMENTATION_COVID19_DIR = os.path.join(INPUT_DIR, "covid-19-seg-crop")
-# dataset100
-SEGMENTATION_COVID19_DATA_DIR = os.path.join(SEGMENTATION_COVID19_DIR, "dataset200")
-# - covid
-SEGMENTATION_COVID19_DATA_SUBDIR = os.path.join(SEGMENTATION_COVID19_DATA_DIR, "covid")
+# # Test COVID-19 samples
+# SEGMENTATION_COVID19_DIR = os.path.join(INPUT_DIR, "covid-19-seg-crop")
+# # dataset100
+# SEGMENTATION_COVID19_DATA_DIR = os.path.join(SEGMENTATION_COVID19_DIR, "dataset200")
+# # - covid
+# SEGMENTATION_COVID19_DATA_SUBDIR = os.path.join(SEGMENTATION_COVID19_DATA_DIR, "covid")
+# print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA_SUBDIR, str(os.path.exists(SEGMENTATION_COVID19_DATA_SUBDIR))))
+# test_customized_dir(model, SEGMENTATION_COVID19_DATA_SUBDIR, "*.png")
+# # - normal
+# SEGMENTATION_COVID19_DATA_SUBDIR = os.path.join(SEGMENTATION_COVID19_DATA_DIR, "ncovid")
+# print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA_SUBDIR, str(os.path.exists(SEGMENTATION_COVID19_DATA_SUBDIR))))
+# test_customized_dir(model, SEGMENTATION_COVID19_DATA_SUBDIR, "*.png")
+# # dataset100
+# SEGMENTATION_COVID19_DATA_DIR = os.path.join(SEGMENTATION_COVID19_DIR, "dataset400")
+# # - covid
+# SEGMENTATION_COVID19_DATA_SUBDIR = os.path.join(SEGMENTATION_COVID19_DATA_DIR, "covid")
+# print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA_SUBDIR, str(os.path.exists(SEGMENTATION_COVID19_DATA_SUBDIR))))
+# test_customized_dir(model, SEGMENTATION_COVID19_DATA_SUBDIR, "*.png")
+# # - normal
+# SEGMENTATION_COVID19_DATA_SUBDIR = os.path.join(SEGMENTATION_COVID19_DATA_DIR, "normal")
+# print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA_SUBDIR, str(os.path.exists(SEGMENTATION_COVID19_DATA_SUBDIR))))
+# test_customized_dir(model, SEGMENTATION_COVID19_DATA_SUBDIR, "*.png")
+# # - pneumnia
+# SEGMENTATION_COVID19_DATA_SUBDIR = os.path.join(SEGMENTATION_COVID19_DATA_DIR, "pneumnia")
+# print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA_SUBDIR, str(os.path.exists(SEGMENTATION_COVID19_DATA_SUBDIR))))
+# test_customized_dir(model, SEGMENTATION_COVID19_DATA_SUBDIR, "*.png")
+# # - others
+# SEGMENTATION_COVID19_DATA_SUBDIR = os.path.join(SEGMENTATION_COVID19_DATA_DIR, "others")
+# print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA_SUBDIR, str(os.path.exists(SEGMENTATION_COVID19_DATA_SUBDIR))))
+# test_customized_dir(model, SEGMENTATION_COVID19_DATA_SUBDIR, "*.png")
+
+# Test COVID-CT images
+SEGMENTATION_COVID19_DIR = os.path.join(INPUT_DIR, "COVID-CT", "Images-processed")
+# - COVID-CT
+SEGMENTATION_COVID19_DATA_SUBDIR = os.path.join(SEGMENTATION_COVID19_DIR, "CT_COVID")
 print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA_SUBDIR, str(os.path.exists(SEGMENTATION_COVID19_DATA_SUBDIR))))
 test_customized_dir(model, SEGMENTATION_COVID19_DATA_SUBDIR, "*.png")
-# - normal
-SEGMENTATION_COVID19_DATA_SUBDIR = os.path.join(SEGMENTATION_COVID19_DATA_DIR, "ncovid")
-print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA_SUBDIR, str(os.path.exists(SEGMENTATION_COVID19_DATA_SUBDIR))))
-test_customized_dir(model, SEGMENTATION_COVID19_DATA_SUBDIR, "*.png")
-# dataset100
-SEGMENTATION_COVID19_DATA_DIR = os.path.join(SEGMENTATION_COVID19_DIR, "dataset400")
-# - covid
-SEGMENTATION_COVID19_DATA_SUBDIR = os.path.join(SEGMENTATION_COVID19_DATA_DIR, "covid")
-print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA_SUBDIR, str(os.path.exists(SEGMENTATION_COVID19_DATA_SUBDIR))))
-test_customized_dir(model, SEGMENTATION_COVID19_DATA_SUBDIR, "*.png")
-# - normal
-SEGMENTATION_COVID19_DATA_SUBDIR = os.path.join(SEGMENTATION_COVID19_DATA_DIR, "normal")
-print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA_SUBDIR, str(os.path.exists(SEGMENTATION_COVID19_DATA_SUBDIR))))
-test_customized_dir(model, SEGMENTATION_COVID19_DATA_SUBDIR, "*.png")
-# - pneumnia
-SEGMENTATION_COVID19_DATA_SUBDIR = os.path.join(SEGMENTATION_COVID19_DATA_DIR, "pneumnia")
-print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA_SUBDIR, str(os.path.exists(SEGMENTATION_COVID19_DATA_SUBDIR))))
-test_customized_dir(model, SEGMENTATION_COVID19_DATA_SUBDIR, "*.png")
-# - others
-SEGMENTATION_COVID19_DATA_SUBDIR = os.path.join(SEGMENTATION_COVID19_DATA_DIR, "others")
+# - NonCOVID-CT
+SEGMENTATION_COVID19_DATA_SUBDIR = os.path.join(SEGMENTATION_COVID19_DIR, "CT_NonCOVID")
 print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA_SUBDIR, str(os.path.exists(SEGMENTATION_COVID19_DATA_SUBDIR))))
 test_customized_dir(model, SEGMENTATION_COVID19_DATA_SUBDIR, "*.png")
 
