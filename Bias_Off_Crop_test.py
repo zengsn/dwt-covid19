@@ -20,7 +20,7 @@ def test_get_smallest_size():
   print("test_get_smallest_size(): passed.")
   
 def test_crop(in_image_path, crop_image_path):
-  Bias_Off_Crop.crop(in_image_path)
+  Bias_Off_Crop.crop(in_image_path,save_crop=True,save_progress=True)
   assert(os.path.isfile(crop_image_path))
   print("test_crop(): passed.")
   

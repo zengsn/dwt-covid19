@@ -13,9 +13,8 @@ from matplotlib import pyplot as plt
 from matplotlib import patches 
 
 N_SKIP = 3
-SAVE_PROGRESS = False
 
-def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict"):
+def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict", save_crop=False, save_progress=False):
   """
   Crop the input image using the predicted label / mask.
   
@@ -60,7 +59,7 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict"):
   #print("Scale rate (h, w): (%d, %d)" % (scale_h, scale_w))
   scale_rate = scale_h # = scale_w
   
-  if SAVE_PROGRESS:
+  if save_progress:
     plt.subplot(1,2,1)
     plt.imshow(in_image,'gray')
     plt.title("Lungs")
@@ -206,7 +205,7 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict"):
     image_left = cv2.resize(image_left, (w_mask*scale_w, h_mask*scale_h))
     image_right = cv2.resize(image_right, (w_mask*scale_w, h_mask*scale_h))
   
-  if SAVE_PROGRESS:
+  if save_progress:
     plt.subplot(1,4,1)
     mask_left_s = cv2.resize(mask_left, None, fx=scale_w, fy=scale_h)
     plt.imshow(mask_left_s,'gray')
@@ -244,7 +243,7 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict"):
   C_in  = image_left[center_v*scale_h:bottom*scale_h,:,:]
   D_in = image_right[center_v*scale_h:bottom*scale_h,:,:]
   
-  if SAVE_PROGRESS:
+  if save_progress:
     h_in = A_in.shape[0]
     w_in = A_in.shape[1]
     plt.subplot(2,4,1)
@@ -313,7 +312,7 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict"):
   col_e      = D_in.shape[1]-D_tl[1]*s # end column
   D          = D_in[row_s:row_e,col_s:col_e,:]
   
-  if SAVE_PROGRESS:
+  if save_progress:
     h_in = A.shape[0]
     w_in = A.shape[1]
     # Mask A
@@ -404,7 +403,7 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict"):
   crop_image[h:2*h,w:2*w,:] = D
   crop_image = cv2.resize(crop_image, (in_image_ori.shape[1],in_image_ori.shape[0]))
   
-  if SAVE_PROGRESS: 
+  if save_progress: 
     #plt.subplot(1,2,1)
     #plt.imshow(in_image_ori)
     #plt.title("Original Image")
@@ -420,8 +419,9 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict"):
   
   # Resize to output shape
   crop_image = cv2.resize(crop_image, out_shape[:-1])
-  cv2.imwrite(os.path.join(os.path.dirname(in_image_path), crop_image_filename), crop_image)
-  print("Cropped image saved to: %s" % crop_image_filename)
+  if save_crop: # save the cropped image to the same directory
+    cv2.imwrite(os.path.join(os.path.dirname(in_image_path), crop_image_filename), crop_image)
+    print("Cropped image saved to: %s" % crop_image_filename)
   
   return crop_image
   
