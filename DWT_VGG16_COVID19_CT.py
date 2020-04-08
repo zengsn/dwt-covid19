@@ -45,6 +45,7 @@ class DWTVGG16COVID19:
     self.learning_rate= hps["learning_rate"] #1e-3
     self.weight_decay = hps["weight_decay"] #0.0005
     self.wavelet      = hps["wavelet"]
+    self.bias_off_crop= hps["bias_off_crop"]
     self.batch_size   = hps["batch_size"]
     self.max_epochs  = hps["max_epochs"]
     self.x_train = hps["x_train"]
@@ -53,6 +54,8 @@ class DWTVGG16COVID19:
     self.y_test  = hps["y_test"]
     self.x_shape = self.x_train.shape[1:]
     self.hps = hps # other hp
+    if self.bias_off_crop: # append _boc to data set name
+      self.dataset = "%s_boc" % self.dataset   
     if self.wavelet:
       self.name = "dwt_vgg16_%s_wavelet_%d" % (
         self.dataset, self.batch_size)
