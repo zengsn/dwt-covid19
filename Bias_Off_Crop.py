@@ -459,8 +459,8 @@ def trim_rectangle(mask, left_right=True):
   tl = top_left
   br = bottom_right
   
-  # check if zero size
-  if br[0]-tl[0]<10 or br[1]-tl[1]<10: 
+  # make sure the trim image is not too small
+  if br[0]-tl[0]<16 or br[1]-tl[1]<16: 
     tl = [0, 0]
     br = [h, w]   
   
