@@ -114,14 +114,19 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict", save_cro
   # Print the results
   print("Calculated top:%d, bottom:%d, left:%d, right:%d"  % (top, bottom, left, right)) 
   # check and make sure it is not too small, like segmentation failed
-  segmentation_failed = False
   if bottom-top<0.5*mask_image.shape[0] or right-left<0.5*mask_image.shape[1]:
     top = 0
     bottom = mask_image.shape[0]-1
     left = 0
     right = mask_image.shape[1]-1
-    segmentation_failed = True
-  print("Reset top:%d, bottom:%d, left:%d, right:%d"  % (top, bottom, left, right)) 
+    # segmentation is failed, return the original image
+    crop_image = cv2.resize(in_image_ori, out_shape[:-1])
+    print("Segmentation failed !!!!! ")
+    if save_crop: # save the cropped image to the same directory
+      cv2.imwrite(os.path.join(os.path.dirname(in_image_path), 
+                             crop_image_filename), crop_image)
+    print("Cropped image saved to: %s" % crop_image_filename)  
+    return crop_image  
   
   # Locate the center point
   start_row = 10
@@ -174,29 +179,25 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict", save_cro
 #       if mask_image[i,j]==0 and met_255 and not met_255_0: # meet 0 after 255
 #         met_255_0 = True   
   # Find the column containing the fewest 255
-  if not segmentation_failed:
-    min_total_255 = mask_image.shape[0]
-    start_x = int(left+0.5*(right-left)-0.2*mask_image.shape[1])
-    end_x   = int(left+0.5*(right-left)+0.2*mask_image.shape[1])
-    min_total_255_x = start_x 
-    for i in range(start_x,end_x):
-      unique, counts = np.unique(mask_image[:,i], return_counts=True)
-      if len(unique) < 2: # may only 0
-        continue
-      # dict(zip(unique, counts))
-      total_255 = counts[1]
-      if total_255 < min_total_255: 
-        min_total_255 = total_255
-        min_total_255_x = i
-    center_x = min_total_255_x
-    center_y = bottom
-    for i in range(bottom,top,-1):
-      if mask_image[i,min_total_255_x]==255:
-        center_y = i
-        break
-  else: # segmentation is failed
-    center_x = int(mask_image.shape[1]*0.5)
-    center_y = n_skip
+  min_total_255 = mask_image.shape[0]
+  start_x = int(left+0.5*(right-left)-0.2*mask_image.shape[1])
+  end_x   = int(left+0.5*(right-left)+0.2*mask_image.shape[1])
+  min_total_255_x = start_x 
+  for i in range(start_x,end_x):
+    unique, counts = np.unique(mask_image[:,i], return_counts=True)
+    if len(unique) < 2: # may only 0
+      continue
+    # dict(zip(unique, counts))
+    total_255 = counts[1]
+    if total_255 < min_total_255: 
+      min_total_255 = total_255
+      min_total_255_x = i
+  center_x = min_total_255_x
+  center_y = bottom
+  for i in range(bottom,top,-1):
+    if mask_image[i,min_total_255_x]==255:
+      center_y = i
+      break
   
   # Print the results
   print("center_x:%d, center_y:%d, start_row:%d" % (center_x, center_y, start_row))      
@@ -311,31 +312,25 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict", save_cro
     plt.show()    
   
   # Trim them
-  if not segmentation_failed:
-    s = scale_rate
-    A_tl, A_br = trim_rectangle(A_mask)
-    A          = A_in[A_tl[0]*s:A_br[0]*s,A_tl[1]*s:A_br[1]*s,:]
-    B_tl, B_br = trim_rectangle(B_mask, False)# mirror it
-    row_s      = B_in.shape[0]-B_br[0]*s # start row
-    row_e      = B_in.shape[0]-B_tl[0]*s # end row
-    col_s      = B_in.shape[1]-B_br[1]*s # start column
-    col_e      = B_in.shape[1]-B_tl[1]*s # end column
-    B          = B_in[row_s:row_e,col_s:col_e,:]
-    C_tl, C_br = trim_rectangle(C_mask)
-    C          = C_in[C_tl[0]*s:C_br[0]*s,C_tl[1]*s:C_br[1]*s,:]
-    D_tl, D_br = trim_rectangle(D_mask, False) # mirror it
-    row_s      = D_in.shape[0]-D_br[0]*s # start row
-    row_e      = D_in.shape[0]-D_tl[0]*s # end row
-    col_s      = D_in.shape[1]-D_br[1]*s # start column
-    col_e      = D_in.shape[1]-D_tl[1]*s # end column
-    D          = D_in[row_s:row_e,col_s:col_e,:]
-  else: # segmentation is failed
-    A = A_in
-    B = B_in 
-    C = C_in 
-    D = D_in
+  s = scale_rate
+  A_tl, A_br = trim_rectangle(A_mask)
+  A          = A_in[A_tl[0]*s:A_br[0]*s,A_tl[1]*s:A_br[1]*s,:]
+  B_tl, B_br = trim_rectangle(B_mask, False)# mirror it
+  row_s      = B_in.shape[0]-B_br[0]*s # start row
+  row_e      = B_in.shape[0]-B_tl[0]*s # end row
+  col_s      = B_in.shape[1]-B_br[1]*s # start column
+  col_e      = B_in.shape[1]-B_tl[1]*s # end column
+  B          = B_in[row_s:row_e,col_s:col_e,:]
+  C_tl, C_br = trim_rectangle(C_mask)
+  C          = C_in[C_tl[0]*s:C_br[0]*s,C_tl[1]*s:C_br[1]*s,:]
+  D_tl, D_br = trim_rectangle(D_mask, False) # mirror it
+  row_s      = D_in.shape[0]-D_br[0]*s # start row
+  row_e      = D_in.shape[0]-D_tl[0]*s # end row
+  col_s      = D_in.shape[1]-D_br[1]*s # start column
+  col_e      = D_in.shape[1]-D_tl[1]*s # end column
+  D          = D_in[row_s:row_e,col_s:col_e,:]
   
-  if not segmentation_failed and save_progress:
+  if save_progress:
     h_in = A.shape[0]
     w_in = A.shape[1]
     # Mask A
@@ -443,7 +438,8 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict", save_cro
   # Resize to output shape
   crop_image = cv2.resize(crop_image, out_shape[:-1])
   if save_crop: # save the cropped image to the same directory
-    cv2.imwrite(os.path.join(os.path.dirname(in_image_path), crop_image_filename), crop_image)
+    cv2.imwrite(os.path.join(os.path.dirname(in_image_path), 
+                             crop_image_filename), crop_image)
     print("Cropped image saved to: %s" % crop_image_filename)
   
   return crop_image
