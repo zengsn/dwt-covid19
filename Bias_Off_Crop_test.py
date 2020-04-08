@@ -48,6 +48,8 @@ if __name__ == '__main__':
                                  "2020.02.23.20026856-p17-115%2.png")
   test_image_path = os.path.join(data_dir, "CT_COVID_unet_seg", \
                                  "2020.02.24.20027052-p8-73%0.png")
+  test_image_path = os.path.join(data_dir, "CT_NonCOVID_unet_seg", \
+                                 "103.png")
   assert os.path.isfile(test_image_path), "File not found!"
   
   # Test test_get_smallest_size()

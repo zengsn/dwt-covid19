@@ -439,18 +439,18 @@ def trim_rectangle(mask, left_right=True):
         top_left = [i,i]
         break
     for i in range(N_SKIP,h-N_SKIP-1):
-      if mask[h-N_SKIP-i,w-N_SKIP-i]==255:
+      if h-N_SKIP-i>0 and w-N_SKIP-i>0 and mask[h-N_SKIP-i,w-N_SKIP-i]==255:
         bottom_right = [h-N_SKIP-i,w-N_SKIP-i]
         break
   else: # right to left
     top_right = [h-N_SKIP-1,N_SKIP]
     for i in range(N_SKIP,h-N_SKIP-1):
-      if i<h and mask[i,w-N_SKIP-i]==255:
+      if i<h and w-N_SKIP-i>0 and mask[i,w-N_SKIP-i]==255:
         top_right = [h-N_SKIP-i,i]
         break
     bottom_left = [N_SKIP, w-N_SKIP-1]
     for i in range(N_SKIP,h-N_SKIP-1):
-      if i<w and mask[h-N_SKIP-i,i]==255:
+      if i<w and h-N_SKIP-i>0 and mask[h-N_SKIP-i,i]==255:
         bottom_left = [i,w-N_SKIP-i]
         break
     top_left = [bottom_left[0],top_right[1]]
