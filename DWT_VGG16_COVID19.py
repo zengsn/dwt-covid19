@@ -36,7 +36,7 @@ import argparse
 import os
 
 from WaveletDeconvolution import WaveletDeconvolution
-from Bias_Off_Crop import crop as bo_crop
+from Bias_Off_Crop import crop as bias_off_crop
 
 class DWTVGG16COVID19:
   def __init__(self, hps, train=True): 
@@ -303,47 +303,21 @@ if __name__ == '__main__':
   
   in_size = 224
   
-  # 2. Preprocess images
-  def load_xray_images(image_dir):    
-    xray_images = [xray_image for xray_image in list(paths.list_images(image_dir)) \
+  # 2. Load images
+  # grab the list of images in our dataset directory, then initialize
+  # the list of data (i.e., images) and class images
+  print("[INFO] loading images...")
+  dataset_dir = args["dataset_dir"]
+  #imagePaths = list(paths.list_images(dataset_dir))
+  xray_images = [xray_image for xray_image in list(paths.list_images(dataset_dir)) \
               if ("_mask" not in xray_image \
                   and "_crop" not in xray_image \
                   and "_dilate" not in xray_image \
                   and "_predict" not in xray_image)]
-    print("Found %d test files." % len(xray_images))
-    return xray_images
-  
-  def bias_off_crop_dir(xray_image_dir):
-    if os.path.exists(xray_image_dir):
-      xray_images = load_xray_images(xray_image_dir)
-      for xray_image in xray_images:
-        bo_crop(xray_image)
+  print("Found %d x-ray images in: %s " % (len(xray_images), dataset_dir))
     
-  dataset_dir = args["dataset_dir"]
-  if args["bias_off_crop"]:
-    print("[INFO] bias-off cropping images...")
-    # covid
-    covid_path = os.path.join(dataset_dir, "covid")
-    bias_off_crop_dir(covid_path)
-    # normal
-    normal_path = os.path.join(dataset_dir, "normal")
-    bias_off_crop_dir(normal_path)
-    # normal
-    pneumnia_path = os.path.join(dataset_dir, "pneumnia")
-    bias_off_crop_dir(pneumnia_path)  
-  
-  # 3. Load images
-  # grab the list of images in our dataset directory, then initialize
-  # the list of data (i.e., images) and class images
-  print("[INFO] loading images...")
-  #imagePaths = list(paths.list_images(dataset_dir))
-  #xray_images = [xray_image for xray_image in glob(os.path.join(dataset_dir, "*.jpg")) \
-  #               if ("_crop" in xray_image)]
-  xray_images = [xray_image for xray_image in list(paths.list_images(dataset_dir)) \
-                 if ("_crop" in xray_image)]
   data = []
   labels = []
-
   # loop over the image paths
   for xray_image_path in xray_images:
     # extract the class label from the filename
@@ -351,8 +325,11 @@ if __name__ == '__main__':
   
     # load the image, swap color channels, and resize it to be a fixed
     # 224x224 pixels while ignoring aspect ratio
-    image = cv2.imread(xray_image_path)
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    if args["bias_off_crop"]:
+      image = bias_off_crop(xray_image_path)
+    else: # no crop
+      image = cv2.imread(xray_image_path)
+      image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     image = cv2.resize(image, (in_size, in_size))
   
     # update the data and labels lists, respectively
