@@ -326,6 +326,7 @@ if __name__ == '__main__':
     # load the image, swap color channels, and resize it to be a fixed
     # 224x224 pixels while ignoring aspect ratio
     if args["bias_off_crop"]:
+      #image = bias_off_crop(xray_image_path,save_crop=True)
       image = bias_off_crop(xray_image_path)
     else: # no crop
       image = cv2.imread(xray_image_path)
