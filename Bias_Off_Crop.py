@@ -111,6 +111,17 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict", save_cro
       if mask_image[i,j] > 0:
         bottom = i
         break 
+  # Print the results
+  print("Calculated top:%d, bottom:%d, left:%d, right:%d"  % (top, bottom, left, right)) 
+  # check and make sure it is not too small, like segmentation failed
+  segmentation_failed = False
+  if bottom-top<0.5*mask_image.shape[0] or right-left<0.5*mask_image.shape[1]:
+    top = n_skip
+    bottom = mask_image.shape[0]-n_skip
+    left = n_skip
+    right = mask_image.shape[1]-n_skip
+    segmentation_failed = True
+  print("Reset top:%d, bottom:%d, left:%d, right:%d"  % (top, bottom, left, right)) 
   
   # Locate the center point
   start_row = 10
@@ -163,29 +174,32 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict", save_cro
 #       if mask_image[i,j]==0 and met_255 and not met_255_0: # meet 0 after 255
 #         met_255_0 = True   
   # Find the column containing the fewest 255
-  min_total_255 = mask_image.shape[0]
-  start_x = int(left+0.5*(right-left)-0.2*mask_image.shape[1])
-  end_x   = int(left+0.5*(right-left)+0.2*mask_image.shape[1])
-  min_total_255_x = start_x 
-  for i in range(start_x,end_x):
-    unique, counts = np.unique(mask_image[:,i], return_counts=True)
-    if len(unique) < 2: # may only 0
-      continue
-    # dict(zip(unique, counts))
-    total_255 = counts[1]
-    if total_255 < min_total_255: 
-      min_total_255 = total_255
-      min_total_255_x = i
-  center_x = min_total_255_x
-  center_y = bottom
-  for i in range(bottom,top,-1):
-    if mask_image[i,min_total_255_x]==255:
-      center_y = i
-      break
+  if not segmentation_failed:
+    min_total_255 = mask_image.shape[0]
+    start_x = int(left+0.5*(right-left)-0.2*mask_image.shape[1])
+    end_x   = int(left+0.5*(right-left)+0.2*mask_image.shape[1])
+    min_total_255_x = start_x 
+    for i in range(start_x,end_x):
+      unique, counts = np.unique(mask_image[:,i], return_counts=True)
+      if len(unique) < 2: # may only 0
+        continue
+      # dict(zip(unique, counts))
+      total_255 = counts[1]
+      if total_255 < min_total_255: 
+        min_total_255 = total_255
+        min_total_255_x = i
+    center_x = min_total_255_x
+    center_y = bottom
+    for i in range(bottom,top,-1):
+      if mask_image[i,min_total_255_x]==255:
+        center_y = i
+        break
+  else: # segmentation is failed
+    center_x = int(mask_image.shape[1]*0.5)
+    center_y = n_skip
   
   # Print the results
-  print("top:%d, bottom:%d, left:%d, right:%d, center_x:%d, center_y:%d, start_row:%d"  % \
-        (top, bottom, left, right, center_x, center_y, start_row))      
+  print("center_x:%d, center_y:%d, start_row:%d" % (center_x, center_y, start_row))      
   assert (center_x>0 and center_y>0)
   # x - columns, y - rows
   
