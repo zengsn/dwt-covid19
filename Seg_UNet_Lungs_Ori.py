@@ -413,10 +413,12 @@ SEGMENTATION_COVID19_DIR = os.path.join(INPUT_DIR, "COVID-CT", "Images-processed
 SEGMENTATION_COVID19_DATA_SUBDIR = os.path.join(SEGMENTATION_COVID19_DIR, "CT_COVID")
 print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA_SUBDIR, str(os.path.exists(SEGMENTATION_COVID19_DATA_SUBDIR))))
 test_customized_dir(model, SEGMENTATION_COVID19_DATA_SUBDIR, "*.png")
+test_customized_dir(model, SEGMENTATION_COVID19_DATA_SUBDIR, "*.jpg")
 # - NonCOVID-CT
 SEGMENTATION_COVID19_DATA_SUBDIR = os.path.join(SEGMENTATION_COVID19_DIR, "CT_NonCOVID")
 print("Test samples in %s, existed? %s" % (SEGMENTATION_COVID19_DATA_SUBDIR, str(os.path.exists(SEGMENTATION_COVID19_DATA_SUBDIR))))
 test_customized_dir(model, SEGMENTATION_COVID19_DATA_SUBDIR, "*.png")
+test_customized_dir(model, SEGMENTATION_COVID19_DATA_SUBDIR, "*.jpg")
 
 if history is not None: # Plot training history
   fig, axs = plt.subplots(1, 2, figsize = (15, 4))
