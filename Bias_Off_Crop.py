@@ -34,7 +34,7 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict", save_cro
   mask_image_path = os.path.join(os.path.dirname(in_image_path), mask_filename)
   assert os.path.isfile(mask_image_path), "Mask image %s not found!" % mask_filename
   print("Found the mask image: %s" % mask_filename)
-  crop_image_filename = "%s_crop.jpg" % filename
+  crop_image_filename = "%s_crop%s" % (filename, ext_name)
   
   # Read the images
   in_image = cv2.imread(in_image_path)
@@ -435,7 +435,7 @@ def trim_rectangle(mask, left_right=True):
   bottom_right = [h-N_SKIP, w-N_SKIP]
   if left_right:
     for i in range(N_SKIP,h-N_SKIP-1):
-      if mask[i,i]==255:
+      if i<h and i<w and mask[i,i]==255:
         top_left = [i,i]
         break
     for i in range(N_SKIP,h-N_SKIP-1):

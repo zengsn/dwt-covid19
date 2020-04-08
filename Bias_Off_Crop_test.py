@@ -19,9 +19,13 @@ def test_get_smallest_size():
   assert(w==10)
   print("test_get_smallest_size(): passed.")
   
-def test_crop(in_image_path, crop_image_path):
+def test_crop(in_image_path):
   Bias_Off_Crop.crop(in_image_path,save_crop=True,save_progress=True)
-  assert(os.path.isfile(crop_image_path))
+  filename, ext_name = os.path.splitext(in_image_path)
+  crop_image_path = os.path.join(
+    os.path.dirname(in_image_path), "%s_crop%s" % (filename, ext_name))
+  print("test_crop(): %s" % crop_image_path)
+  assert os.path.exists(crop_image_path)
   print("test_crop(): passed.")
   
 if __name__ == '__main__':
@@ -42,13 +46,14 @@ if __name__ == '__main__':
   data_dir = "/Volumes/SanDisk256B/Lab0_Data_Keras/COVID-CT/Images-processed/"
   test_image_path = os.path.join(data_dir, "CT_COVID_unet_seg", \
                                  "2020.02.23.20026856-p17-115%2.png")
+  test_image_path = os.path.join(data_dir, "CT_COVID_unet_seg", \
+                                 "2020.02.24.20027052-p8-73%0.png")
   assert os.path.isfile(test_image_path), "File not found!"
   
   # Test test_get_smallest_size()
   test_get_smallest_size()
   
   # 
-  crop_image_path = os.path.join(data_dir, "covid", "covid-19-pneumonia-2_crop.jpg")
-  test_crop(test_image_path, crop_image_path)
+  test_crop(test_image_path)
   
   
