@@ -54,6 +54,9 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict", save_cro
   print("Mask image shape is %s, %s" % (str(mask_image.shape), str(ret))) 
   
   # Scale rate between input and mask
+  if in_image.shape[0] < mask_image.shape[0]:
+    # make sure in_image not smaller than mask_image
+    in_image = cv2.resize(in_image, mask_image.shape)
   scale_h = int(in_image.shape[0] / mask_image.shape[0])
   scale_w = int(in_image.shape[1] / mask_image.shape[1])
   #print("Scale rate (h, w): (%d, %d)" % (scale_h, scale_w))

@@ -39,6 +39,9 @@ if __name__ == '__main__':
   #test_image_path = os.path.join(data_dir, "pneumnia", "person1343_bacteria_3411.jpeg")
   #test_image_path = os.path.join(data_dir, "pneumnia", "person1619_bacteria_4269.jpeg")
   test_image_path = os.path.join(data_dir, "pneumnia", "person253_bacteria_1156.jpeg")
+  data_dir = "/Volumes/SanDisk256B/Lab0_Data_Keras/COVID-CT/Images-processed/"
+  test_image_path = os.path.join(data_dir, "CT_COVID_unet_seg", \
+                                 "2020.02.23.20026856-p17-115%2.png")
   assert os.path.isfile(test_image_path), "File not found!"
   
   # Test test_get_smallest_size()
