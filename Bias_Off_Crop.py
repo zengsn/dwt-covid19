@@ -28,12 +28,14 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict", save_cro
   assert out_shape[1] % 4 == 0, "The output height should be 4*n pixels!"
   
   filename = os.path.basename(in_image_path)
-  print("Cropping the image: %s/%s" % (os.path.dirname(in_image_path), filename))
+  parent_name = os.path.basename(os.path.dirname(in_image_path))
+  print("Cropping the image: %s/%s" % (parent_name, filename))
   filename, ext_name = os.path.splitext(filename) # filename.split(".")[-1]
   mask_filename = "%s%s%s" % (filename, predict_suff, ext_name)
   mask_image_path = os.path.join(os.path.dirname(in_image_path), mask_filename)
   assert os.path.isfile(mask_image_path), "Mask image %s not found!" % mask_filename
-  print("Found the mask image: %s" % mask_filename)
+  if save_progress:
+    print("Found the mask image: %s" % mask_filename)
   crop_image_filename = "%s_crop%s" % (filename, ext_name)
   
   # Read the images
@@ -51,7 +53,8 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict", save_cro
   mask_image = cv2.cvtColor(mask_image, cv2.COLOR_BGR2GRAY)
   #mask_image = cv2.resize(mask_image, in_image.shape[:-1])
   ret, mask_image=cv2.threshold(mask_image,127,255,cv2.THRESH_BINARY)
-  print("Mask image shape is %s, %s" % (str(mask_image.shape), str(ret))) 
+  if save_progress:
+    print("Mask image shape is %s, %s" % (str(mask_image.shape), str(ret))) 
   
   # Scale rate between input and mask
   if in_image.shape[0] < mask_image.shape[0]:
@@ -112,7 +115,8 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict", save_cro
         bottom = i
         break 
   # Print the results
-  print("Calculated top:%d, bottom:%d, left:%d, right:%d"  % (top, bottom, left, right)) 
+  if save_progress:
+    print("Calculated top:%d, bottom:%d, left:%d, right:%d"  % (top, bottom, left, right)) 
   # check and make sure it is not too small, like segmentation failed
   if bottom-top<0.5*mask_image.shape[0] or right-left<0.5*mask_image.shape[1]:
     top = 0
@@ -125,7 +129,7 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict", save_cro
     if save_crop: # save the cropped image to the same directory
       cv2.imwrite(os.path.join(os.path.dirname(in_image_path), 
                              crop_image_filename), crop_image)
-    print("Cropped image saved to: %s" % crop_image_filename)  
+      print("Cropped image saved to: %s" % crop_image_filename)  
     return crop_image  
   
   # Locate the center point
@@ -200,7 +204,8 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict", save_cro
       break
   
   # Print the results
-  print("center_x:%d, center_y:%d, start_row:%d" % (center_x, center_y, start_row))      
+  if save_progress:
+    print("center_x:%d, center_y:%d, start_row:%d" % (center_x, center_y, start_row))      
   assert (center_x>0 and center_y>0)
   # x - columns, y - rows
   
