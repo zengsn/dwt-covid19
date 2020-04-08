@@ -28,7 +28,7 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict", save_cro
   assert out_shape[1] % 4 == 0, "The output height should be 4*n pixels!"
   
   filename = os.path.basename(in_image_path)
-  print("Cropping the image: %s" % filename)
+  print("Cropping the image: %s/%s" % (os.path.dirname(in_image_path), filename))
   filename, ext_name = os.path.splitext(filename) # filename.split(".")[-1]
   mask_filename = "%s%s%s" % (filename, predict_suff, ext_name)
   mask_image_path = os.path.join(os.path.dirname(in_image_path), mask_filename)
