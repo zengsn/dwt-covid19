@@ -116,10 +116,10 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict", save_cro
   # check and make sure it is not too small, like segmentation failed
   segmentation_failed = False
   if bottom-top<0.5*mask_image.shape[0] or right-left<0.5*mask_image.shape[1]:
-    top = n_skip
-    bottom = mask_image.shape[0]-n_skip
-    left = n_skip
-    right = mask_image.shape[1]-n_skip
+    top = 0
+    bottom = mask_image.shape[0]-1
+    left = 0
+    right = mask_image.shape[1]-1
     segmentation_failed = True
   print("Reset top:%d, bottom:%d, left:%d, right:%d"  % (top, bottom, left, right)) 
   
@@ -311,25 +311,31 @@ def crop(in_image_path, out_shape=(224,224,3), predict_suff="_predict", save_cro
     plt.show()    
   
   # Trim them
-  s = scale_rate
-  A_tl, A_br = trim_rectangle(A_mask)
-  A          = A_in[A_tl[0]*s:A_br[0]*s,A_tl[1]*s:A_br[1]*s,:]
-  B_tl, B_br = trim_rectangle(B_mask, False)# mirror it
-  row_s      = B_in.shape[0]-B_br[0]*s # start row
-  row_e      = B_in.shape[0]-B_tl[0]*s # end row
-  col_s      = B_in.shape[1]-B_br[1]*s # start column
-  col_e      = B_in.shape[1]-B_tl[1]*s # end column
-  B          = B_in[row_s:row_e,col_s:col_e,:]
-  C_tl, C_br = trim_rectangle(C_mask)
-  C          = C_in[C_tl[0]*s:C_br[0]*s,C_tl[1]*s:C_br[1]*s,:]
-  D_tl, D_br = trim_rectangle(D_mask, False) # mirror it
-  row_s      = D_in.shape[0]-D_br[0]*s # start row
-  row_e      = D_in.shape[0]-D_tl[0]*s # end row
-  col_s      = D_in.shape[1]-D_br[1]*s # start column
-  col_e      = D_in.shape[1]-D_tl[1]*s # end column
-  D          = D_in[row_s:row_e,col_s:col_e,:]
+  if not segmentation_failed:
+    s = scale_rate
+    A_tl, A_br = trim_rectangle(A_mask)
+    A          = A_in[A_tl[0]*s:A_br[0]*s,A_tl[1]*s:A_br[1]*s,:]
+    B_tl, B_br = trim_rectangle(B_mask, False)# mirror it
+    row_s      = B_in.shape[0]-B_br[0]*s # start row
+    row_e      = B_in.shape[0]-B_tl[0]*s # end row
+    col_s      = B_in.shape[1]-B_br[1]*s # start column
+    col_e      = B_in.shape[1]-B_tl[1]*s # end column
+    B          = B_in[row_s:row_e,col_s:col_e,:]
+    C_tl, C_br = trim_rectangle(C_mask)
+    C          = C_in[C_tl[0]*s:C_br[0]*s,C_tl[1]*s:C_br[1]*s,:]
+    D_tl, D_br = trim_rectangle(D_mask, False) # mirror it
+    row_s      = D_in.shape[0]-D_br[0]*s # start row
+    row_e      = D_in.shape[0]-D_tl[0]*s # end row
+    col_s      = D_in.shape[1]-D_br[1]*s # start column
+    col_e      = D_in.shape[1]-D_tl[1]*s # end column
+    D          = D_in[row_s:row_e,col_s:col_e,:]
+  else: # segmentation is failed
+    A = A_in
+    B = B_in 
+    C = C_in 
+    D = D_in
   
-  if save_progress:
+  if not segmentation_failed and save_progress:
     h_in = A.shape[0]
     w_in = A.shape[1]
     # Mask A
