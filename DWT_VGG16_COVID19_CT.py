@@ -77,17 +77,9 @@ class DWTVGG16COVID19:
 
 
   def build_model(self):
-    baseModel = VGG16( # Pre-trained VGG16
-      weights="imagenet", include_top=False, 
-      input_tensor=Input(shape=self.x_shape))
-    # loop over all layers in the base model and freeze them so they will
-    # *not* be updated during the first training process
-    for layer in baseModel.layers:
-      layer.trainable = False
-    # construct the head of the model 
-    # that will be placed on top of the the base model
-    headModel = baseModel.output
-    if self.hps["wavelet"]: # add WaveletDeconv       
+    inputs = Input(shape=self.x_shape)
+    if self.hps["wavelet"]: # add WaveletDeconv
+      headModel = inputs       
       print(headModel.shape) 
       w = headModel.shape[1].value 
       h = headModel.shape[2].value 
@@ -110,7 +102,20 @@ class DWTVGG16COVID19:
       print(headModel.shape)
       headModel = BatchNormalization()(headModel)
       headModel = MaxPooling2D(pool_size=(2, 2))(headModel)
-      headModel = Dropout(0.5)(headModel)
+      headModel = Dropout(0.5)(headModel) 
+    else:
+      headModel = inputs          
+    
+    baseModel = VGG16( # Pre-trained VGG16
+      weights="imagenet", include_top=False, 
+      input_tensor=headModel)
+    # loop over all layers in the base model and freeze them so they will
+    # *not* be updated during the first training process
+    for layer in baseModel.layers:
+      layer.trainable = False
+    # construct the head of the model 
+    # that will be placed on top of the the base model
+    headModel = baseModel.output
     
     if self.hps["deeper"]:
       headModel = Conv2D(512, (3, 3), padding='same')(headModel)
