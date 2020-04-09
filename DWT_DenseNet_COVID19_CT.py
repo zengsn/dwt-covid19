@@ -14,7 +14,7 @@ from keras.layers import Input, Reshape, merge
 from keras.layers import Dense, Dropout, Activation
 from keras.layers import Conv2D
 from keras.layers.core import Lambda
-from keras.layers.convolutional import ZeroPadding2D, Convolution2D
+from keras.layers.convolutional import ZeroPadding2D
 from keras.layers.normalization import BatchNormalization
 from keras.layers.pooling import GlobalAveragePooling2D, MaxPooling2D,\
   AveragePooling2D
@@ -64,10 +64,10 @@ class DWTDenseNetCOVID19:
     if self.bias_off_crop: # append _boc to data set name
       self.dataset = "%s_boc" % self.dataset   
     if self.wavelet:
-      self.name = "dwt_vgg16_%s_wavelet_%d" % (
+      self.name = "dwt_densenet169_%s_wavelet_%d" % (
         self.dataset, self.batch_size)
     else:
-      self.name = "dwt_vgg16_%s_%d" % (
+      self.name = "dwt_densenet169_%s_%d" % (
         self.dataset, self.batch_size)
 
     self.model_dir = os.path.join(os.getcwd(), "%s_model" % self.name)
@@ -98,7 +98,7 @@ class DWTDenseNetCOVID19:
     x = BatchNormalization(epsilon=eps, axis=concat_axis, name=conv_name_base+'_x1_bn')(x)
     x = Scale(axis=concat_axis, name=conv_name_base+'_x1_scale')(x)
     x = Activation('relu', name=relu_name_base+'_x1')(x)
-    x = Convolution2D(inter_channel, 1, 1, name=conv_name_base+'_x1', bias=False)(x)
+    x = Conv2D(inter_channel, 1, 1, name=conv_name_base+'_x1', bias=False)(x)
 
     if dropout_rate:
         x = Dropout(dropout_rate)(x)
@@ -108,7 +108,7 @@ class DWTDenseNetCOVID19:
     x = Scale(axis=concat_axis, name=conv_name_base+'_x2_scale')(x)
     x = Activation('relu', name=relu_name_base+'_x2')(x)
     x = ZeroPadding2D((1, 1), name=conv_name_base+'_x2_zeropadding')(x)
-    x = Convolution2D(nb_filter, 3, 3, name=conv_name_base+'_x2', bias=False)(x)
+    x = Conv2D(nb_filter, 3, 3, name=conv_name_base+'_x2', bias=False)(x)
 
     if dropout_rate:
         x = Dropout(dropout_rate)(x)
@@ -135,7 +135,7 @@ class DWTDenseNetCOVID19:
     x = BatchNormalization(epsilon=eps, axis=concat_axis, name=conv_name_base+'_bn')(x)
     x = Scale(axis=concat_axis, name=conv_name_base+'_scale')(x)
     x = Activation('relu', name=relu_name_base)(x)
-    x = Convolution2D(int(nb_filter * compression), 1, 1, name=conv_name_base, bias=False)(x)
+    x = Conv2D(int(nb_filter * compression), 1, 1, name=conv_name_base, bias=False)(x)
 
     if dropout_rate:
         x = Dropout(dropout_rate)(x)
@@ -214,7 +214,7 @@ class DWTDenseNetCOVID19:
 
     # Initial convolution
     x = ZeroPadding2D((3, 3), name='conv1_zeropadding')(img_input)
-    x = Convolution2D(nb_filter, 7, 7, subsample=(2, 2), name='conv1', bias=False)(x)
+    x = Conv2D(nb_filter, 7, 7, subsample=(2, 2), name='conv1', bias=False)(x)
     x = BatchNormalization(epsilon=eps, axis=concat_axis, name='conv1_bn')(x)
     x = Scale(axis=concat_axis, name='conv1_scale')(x)
     x = Activation('relu', name='relu1')(x)
