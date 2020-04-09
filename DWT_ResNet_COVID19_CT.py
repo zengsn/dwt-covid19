@@ -7,25 +7,25 @@
 
 # import the necessary packages
 from __future__ import print_function
+import tensorflow as tf 
 from keras.preprocessing.image import ImageDataGenerator
-from keras.applications import VGG16
 from keras.callbacks import ModelCheckpoint
-from keras.layers import Input, Reshape
-from keras.layers import Dense, Dropout, Activation, Flatten
+from keras.layers import Input, Reshape, merge
+from keras.layers import Dense, Activation
 from keras.layers import Conv2D
-from keras.layers.core import Lambda
+from keras.layers.core import Lambda, Flatten
+from keras.layers.convolutional import ZeroPadding2D, Convolution2D
 from keras.layers.normalization import BatchNormalization
-from keras.layers.pooling import MaxPooling2D
+from keras.layers.pooling import  MaxPooling2D, AveragePooling2D
 from keras.models import Model
-from keras.optimizers import Adam
-#from keras import backend as K
-#from keras import regularizers
+from keras.optimizers import SGD
+#from tf.keras import backend as K
+#from tf.keras import regularizers
 from keras.utils import to_categorical
 
 # resize input to 48x48 at least
 import cv2  
 
-import tensorflow as tf
 #from sklearn.preprocessing import LabelBinarizer
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import classification_report
@@ -38,10 +38,13 @@ import os
 
 from WaveletDeconvolution import WaveletDeconvolution
 from Bias_Off_Crop import crop as bias_off_crop
+from custom_layers.scale_layer import Scale
 
-class DWTVGG16COVID19:
+class DWTResNetCOVID19:
   def __init__(self, hps, train=True): 
     self.dataset      = hps["dataset"]
+    self.network      = hps["network"]
+    self.weights_dir  = hps["weights_dir"]
     self.num_classes  = hps["num_classes"] #10
     self.learning_rate= hps["learning_rate"] #1e-3
     self.weight_decay = hps["weight_decay"] #0.0005
@@ -60,10 +63,10 @@ class DWTVGG16COVID19:
     if self.bias_off_crop: # append _boc to data set name
       self.dataset = "%s_boc" % self.dataset   
     if self.wavelet:
-      self.name = "dwt_vgg16_%s_wavelet_%d" % (
+      self.name = "dwt_resnet152_%s_wavelet_%d" % (
         self.dataset, self.batch_size)
     else:
-      self.name = "dwt_vgg16_%s_%d" % (
+      self.name = "dwt_resnet152_%s_%d" % (
         self.dataset, self.batch_size)
 
     self.model_dir = os.path.join(os.getcwd(), "%s_model" % self.name)
@@ -74,68 +77,187 @@ class DWTVGG16COVID19:
     else: # load the saved model
       self.model.load_weights(os.path.join(
         self.model_dir, self.final_weights_file))
+  
+  def identity_block(self, input_tensor, kernel_size, filters, stage, block):
+    '''The identity_block is the block that has no conv layer at shortcut
+    # Arguments
+        input_tensor: input tensor
+        kernel_size: defualt 3, the kernel size of middle conv layer at main path
+        filters: list of integers, the nb_filters of 3 conv layer at main path
+        stage: integer, current stage label, used for generating layer names
+        block: 'a','b'..., current block label, used for generating layer names
+    '''
+    eps = 1.1e-5
+    nb_filter1, nb_filter2, nb_filter3 = filters
+    conv_name_base = 'res' + str(stage) + block + '_branch'
+    bn_name_base = 'bn' + str(stage) + block + '_branch'
+    scale_name_base = 'scale' + str(stage) + block + '_branch'
 
+    x = Convolution2D(nb_filter1, 1, 1, name=conv_name_base + '2a', bias=False)(input_tensor)
+    x = BatchNormalization(epsilon=eps, axis=bn_axis, name=bn_name_base + '2a')(x)
+    x = Scale(axis=bn_axis, name=scale_name_base + '2a')(x)
+    x = Activation('relu', name=conv_name_base + '2a_relu')(x)
+
+    x = ZeroPadding2D((1, 1), name=conv_name_base + '2b_zeropadding')(x)
+    x = Convolution2D(nb_filter2, kernel_size, kernel_size,
+                      name=conv_name_base + '2b', bias=False)(x)
+    x = BatchNormalization(epsilon=eps, axis=bn_axis, name=bn_name_base + '2b')(x)
+    x = Scale(axis=bn_axis, name=scale_name_base + '2b')(x)
+    x = Activation('relu', name=conv_name_base + '2b_relu')(x)
+
+    x = Convolution2D(nb_filter3, 1, 1, name=conv_name_base + '2c', bias=False)(x)
+    x = BatchNormalization(epsilon=eps, axis=bn_axis, name=bn_name_base + '2c')(x)
+    x = Scale(axis=bn_axis, name=scale_name_base + '2c')(x)
+
+    x = merge([x, input_tensor], mode='sum', name='res' + str(stage) + block)
+    x = Activation('relu', name='res' + str(stage) + block + '_relu')(x)
+    return x
+
+  def conv_block(self, input_tensor, kernel_size, filters, stage, block, strides=(2, 2)):
+    '''conv_block is the block that has a conv layer at shortcut
+    # Arguments
+        input_tensor: input tensor
+        kernel_size: defualt 3, the kernel size of middle conv layer at main path
+        filters: list of integers, the nb_filters of 3 conv layer at main path
+        stage: integer, current stage label, used for generating layer names
+        block: 'a','b'..., current block label, used for generating layer names
+    Note that from stage 3, the first conv layer at main path is with subsample=(2,2)
+    And the shortcut should have subsample=(2,2) as well
+    '''
+    eps = 1.1e-5
+    nb_filter1, nb_filter2, nb_filter3 = filters
+    conv_name_base = 'res' + str(stage) + block + '_branch'
+    bn_name_base = 'bn' + str(stage) + block + '_branch'
+    scale_name_base = 'scale' + str(stage) + block + '_branch'
+
+    x = Convolution2D(nb_filter1, 1, 1, subsample=strides,
+                      name=conv_name_base + '2a', bias=False)(input_tensor)
+    x = BatchNormalization(epsilon=eps, axis=bn_axis, name=bn_name_base + '2a')(x)
+    x = Scale(axis=bn_axis, name=scale_name_base + '2a')(x)
+    x = Activation('relu', name=conv_name_base + '2a_relu')(x)
+
+    x = ZeroPadding2D((1, 1), name=conv_name_base + '2b_zeropadding')(x)
+    x = Convolution2D(nb_filter2, kernel_size, kernel_size,
+                      name=conv_name_base + '2b', bias=False)(x)
+    x = BatchNormalization(epsilon=eps, axis=bn_axis, name=bn_name_base + '2b')(x)
+    x = Scale(axis=bn_axis, name=scale_name_base + '2b')(x)
+    x = Activation('relu', name=conv_name_base + '2b_relu')(x)
+
+    x = Convolution2D(nb_filter3, 1, 1, name=conv_name_base + '2c', bias=False)(x)
+    x = BatchNormalization(epsilon=eps, axis=bn_axis, name=bn_name_base + '2c')(x)
+    x = Scale(axis=bn_axis, name=scale_name_base + '2c')(x)
+
+    shortcut = Convolution2D(nb_filter3, 1, 1, subsample=strides,
+                             name=conv_name_base + '1', bias=False)(input_tensor)
+    shortcut = BatchNormalization(epsilon=eps, axis=bn_axis, name=bn_name_base + '1')(shortcut)
+    shortcut = Scale(axis=bn_axis, name=scale_name_base + '1')(shortcut)
+
+    x = merge([x, shortcut], mode='sum', name='res' + str(stage) + block)
+    x = Activation('relu', name='res' + str(stage) + block + '_relu')(x)
+    return x
+
+  def build_resnet152_model(self,inputs):
+    """
+    Resnet 152 Model for Keras
+    Model Schema and layer naming follow that of the original Caffe implementation
+    https://github.com/KaimingHe/deep-residual-networks
+    ImageNet Pretrained Weights 
+    Theano: https://drive.google.com/file/d/0Byy2AcGyEVxfZHhUT3lWVWxRN28/view?usp=sharing
+    TensorFlow: https://drive.google.com/file/d/0Byy2AcGyEVxfeXExMzNNOHpEODg/view?usp=sharing
+    Parameters:
+      img_rows, img_cols - resolution of inputs
+      channel - 1 for grayscale, 3 for color 
+      num_classes - number of class labels for our classification task
+    """
+    eps = 1.1e-5
+    #img_rows = self.x_shape[0]
+    #img_cols = self.x_shape[1]
+    #color_type = self.x_shape[2]
+
+    # Handle Dimension Ordering for different backends
+    global bn_axis
+    bn_axis = 3
+    img_input = inputs
+
+    x = ZeroPadding2D((3, 3), name='conv1_zeropadding')(img_input)
+    x = Convolution2D(64, 7, 7, subsample=(2, 2), name='conv1', bias=False)(x)
+    x = BatchNormalization(epsilon=eps, axis=bn_axis, name='bn_conv1')(x)
+    x = Scale(axis=bn_axis, name='scale_conv1')(x)
+    x = Activation('relu', name='conv1_relu')(x)
+    x = MaxPooling2D((3, 3), strides=(2, 2), name='pool1')(x)
+
+    x = self.conv_block(x, 3, [64, 64, 256], stage=2, block='a', strides=(1, 1))
+    x = self.identity_block(x, 3, [64, 64, 256], stage=2, block='b')
+    x = self.identity_block(x, 3, [64, 64, 256], stage=2, block='c')
+
+    x = self.conv_block(x, 3, [128, 128, 512], stage=3, block='a')
+    for i in range(1,8):
+      x = self.identity_block(x, 3, [128, 128, 512], stage=3, block='b'+str(i))
+
+    x = self.conv_block(x, 3, [256, 256, 1024], stage=4, block='a')
+    for i in range(1,36):
+      x = self.identity_block(x, 3, [256, 256, 1024], stage=4, block='b'+str(i))
+
+    x = self.conv_block(x, 3, [512, 512, 2048], stage=5, block='a')
+    x = self.identity_block(x, 3, [512, 512, 2048], stage=5, block='b')
+    x = self.identity_block(x, 3, [512, 512, 2048], stage=5, block='c')
+
+    x_fc = AveragePooling2D((7, 7), name='avg_pool')(x)
+    x_fc = Flatten()(x_fc)
+    x_fc = Dense(1000, activation='softmax', name='fc1000')(x_fc)
+
+    model = Model(img_input, x_fc)
+    return [model, x]
 
   def build_model(self):
-    baseModel = VGG16( # Pre-trained VGG16
-      weights="imagenet", include_top=False, 
-      input_tensor=Input(shape=self.x_shape))
+    inputs = Input(shape=self.x_shape, name='data')
+    base_model, base_output = self.build_resnet152_model(inputs)
+    # Use pre-trained weights for Tensorflow backend
+    weights_path = os.path.join(self.weights_dir, #'densennet-imagenet-models'
+                                'resnet152_weights_tf.h5')
+    base_model.load_weights(weights_path, by_name=True)
     # loop over all layers in the base model and freeze them so they will
     # *not* be updated during the first training process
-    for layer in baseModel.layers:
-      layer.trainable = False
-    # construct the head of the model 
-    # that will be placed on top of the the base model
-    headModel = baseModel.output
+    #for layer in base_model.layers[-3]:
+    #  layer.trainable = False
+      
     if self.hps["wavelet"]: # add WaveletDeconv       
-      print(headModel.shape) 
-      w = headModel.shape[1].value 
-      h = headModel.shape[2].value 
-      z = headModel.shape[3].value 
+      print(base_output.shape) 
+      w = base_output.shape[1].value 
+      h = base_output.shape[2].value 
+      z = base_output.shape[3].value 
       # TypeError: float() argument must be a string or a number, not 'Dimension' keras
       # Solution: https://blog.csdn.net/qq_40774175/article/details/105196387
       # When using Reshape, make sure the shape is using int values. 
-      headModel = Reshape([w*h,z])(headModel)
+      wd_layers = Reshape([w*h,z])(base_output)
       # Error: Variable is unhashable if Tensor equality is enabled
       #headModel = Lambda(lambda x: tf.reshape(x, [-1,7*7,512]))(headModel) 
-      headModel = WaveletDeconvolution(
+      wd_layers = WaveletDeconvolution(
         5, kernel_length=500, padding='same', 
-        input_shape=[w*h,z], data_format='channels_first')(headModel)
-      headModel = Activation('tanh')(headModel)
-      headModel = Conv2D(5, (3, 3), padding='same')(headModel)
-      headModel = Activation('relu')(headModel)
-      print(headModel.shape) 
-      headModel = Lambda(lambda x: tf.reduce_min(x, 3))(headModel) 
-      headModel = Reshape([w,h,z])(headModel)
-      print(headModel.shape) 
-    
-    if self.hps["deeper"]:
-      headModel = Conv2D(512, (3, 3), padding='same')(headModel)
-      headModel = Activation('relu')(headModel)
-      headModel = BatchNormalization()(headModel)
-      headModel = MaxPooling2D(pool_size=(2, 2))(headModel)
-      headModel = Dropout(0.5)(headModel)
+        input_shape=[w*h,z], data_format='channels_first')(wd_layers)
+      wd_layers = Activation('tanh')(wd_layers)
+      wd_layers = Conv2D(5, (3, 3), padding='same')(wd_layers)
+      wd_layers = Activation('relu')(wd_layers)
+      print(wd_layers.shape) 
+      wd_layers = Lambda(lambda x: tf.reduce_min(x, 3))(wd_layers) 
+      wd_layers = Reshape([w,h,z])(wd_layers)
+      print(wd_layers.shape) 
+      base_output = wd_layers
+    # Truncate and replace softmax layer for transfer learning
+    # Cannot use model.layers.pop() since model is not of Sequential() type
+    # The method below works since pre-trained weights are stored in layers but not in the model
+    head_model = AveragePooling2D((7, 7), name='avg_pool')(base_output)
+    head_model = Flatten()(head_model)
+    head_model = Dense(num_classes, activation='softmax', name='fc8')(head_model)
 
-    # Normal fine-tuning
-    headModel = Flatten()(headModel)
-    #headModel = Dense(512,kernel_regularizer=regularizers.l2(self.weight_decay))(headModel)
-    headModel = Dense(64)(headModel)
-    headModel = Activation('relu')(headModel)
-    #headModel = BatchNormalization()(headModel)
-
-    headModel = Dropout(0.5)(headModel)
-    headModel = Dense(self.num_classes)(headModel)
-    headModel = Activation('softmax')(headModel)
-    
-    # place the head FC model on top of the base model
-    # (this will become the actual model we will train)
-    model = Model(inputs=baseModel.input, outputs=headModel)    
+    model = Model(inputs, head_model)   
     return model 
 
   def predict(self):
     x = self.x_test
     y = self.y_test
     predIdxs = self.model.predict(x, self.batch_size)
+    #score = log_loss(y, predIdxs)
 
     # for each image in the testing set we need to find the index of the
     # label with corresponding largest predicted probability
@@ -217,11 +339,12 @@ class DWTVGG16COVID19:
     #datagen.fit(x_train) # featurewise_center, featurewise_std_normalization and zca_whitening.
 
     # optimization details
-    opt = Adam(lr=learning_rate, decay=lr_decay)
+    #opt = Adam(lr=learning_rate, decay=lr_decay)
+    opt = SGD(lr=learning_rate, decay=lr_decay, momentum=0.9, nesterov=True)
     if self.num_classes == 2:
       model.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
     else: #self.num_classes == 3
-      model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])    
+      model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])   
     
     # check the last training steps
     checkpoint_dir = self.model_dir
@@ -297,6 +420,10 @@ if __name__ == '__main__':
     help="dataset name, default is covid19")
   ap.add_argument("-dd", "--dataset_dir", type=str, required=True,
     help="directory containing COVID-19 images")
+  ap.add_argument("-net", "--network", type=int, default=201,
+    help="DenseNet version, 121, 169, or 201")
+  ap.add_argument("-ws", "--weights_dir", type=str, default="resnet-imagenet-models",                  
+    help="directory containing pre-trained models")  
   #ap.add_argument("-nc", "--num_classes", type=int, default=2,
   #  help="number of classes, default is 2, covid19 and normal")
   #ap.add_argument("-p", "--plot", type=str, default="plot.png",
@@ -311,18 +438,12 @@ if __name__ == '__main__':
     help="weight decay, default is 0.0005")
   ap.add_argument("-me", "--max_epochs", type=int, default=25,
     help="max epoches, default is 25")
-  # bias_off_crop
   ap.add_argument('--boc', dest='bias_off_crop', action='store_true')
   ap.add_argument('--no-boc', dest='bias_off_crop', action='store_false')
   ap.set_defaults(bias_off_crop=False)
-  # wavelet
   ap.add_argument('--wavelet', dest='wavelet', action='store_true')
   ap.add_argument('--no-wavelet', dest='wavelet', action='store_false')
   ap.set_defaults(wavelet=False)
-  # deeper architecture
-  ap.add_argument('--deeper', dest='deeper', action='store_true')
-  ap.add_argument('--no-deeper', dest='deeper', action='store_false')
-  ap.set_defaults(deeper=False)
   args = vars(ap.parse_args())
   
   in_size = 224
@@ -453,7 +574,7 @@ if __name__ == '__main__':
   print(y_test[:10,:])
 
   # 3. Create and train the model
-  model = DWTVGG16COVID19(args, True)
+  model = DWTResNetCOVID19(args, True)
 
   # 4. Predict the result
   predicted_x = model.predict()
