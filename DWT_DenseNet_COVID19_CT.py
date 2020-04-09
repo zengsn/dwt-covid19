@@ -90,7 +90,7 @@ class DWTDenseNetCOVID19:
     else:
       baseModel = DenseNet201()( # 
         weights="imagenet", include_top=False, 
-        input_tensor=Input(shape=self.x_shape))
+        inputs=Input(shape=self.x_shape))
     # loop over all layers in the base model and freeze them so they will
     # *not* be updated during the first training process
     for layer in baseModel.layers:
