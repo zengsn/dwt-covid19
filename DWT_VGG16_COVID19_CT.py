@@ -77,9 +77,17 @@ class DWTVGG16COVID19:
 
 
   def build_model(self):
-    inputs = Input(shape=self.x_shape)
-    if self.hps["wavelet"]: # add WaveletDeconv
-      headModel = inputs       
+    baseModel = VGG16( # Pre-trained VGG16
+      weights="imagenet", include_top=False, 
+      input_tensor=Input(shape=self.x_shape))
+    # loop over all layers in the base model and freeze them so they will
+    # *not* be updated during the first training process
+    for layer in baseModel.layers:
+      layer.trainable = False
+    # construct the head of the model 
+    # that will be placed on top of the the base model
+    headModel = baseModel.output
+    if self.hps["wavelet"]: # add WaveletDeconv       
       print(headModel.shape) 
       w = headModel.shape[1].value 
       h = headModel.shape[2].value 
@@ -94,28 +102,18 @@ class DWTVGG16COVID19:
         5, kernel_length=500, padding='same', 
         input_shape=[w*h,z], data_format='channels_first')(headModel)
       headModel = Activation('tanh')(headModel)
+      headModel = BatchNormalization()(headModel)
+      headModel = MaxPooling2D(pool_size=(2, 2))(headModel)
+      headModel = Dropout(0.5)(headModel)
       headModel = Conv2D(5, (3, 3), padding='same')(headModel)
       headModel = Activation('relu')(headModel)
+      headModel = BatchNormalization()(headModel)
+      headModel = MaxPooling2D(pool_size=(2, 2))(headModel)
+      headModel = Dropout(0.5)(headModel)
       print(headModel.shape) 
       headModel = Lambda(lambda x: tf.reduce_min(x, 3))(headModel) 
       headModel = Reshape([w,h,z])(headModel)
       print(headModel.shape)
-      headModel = BatchNormalization()(headModel)
-      headModel = MaxPooling2D(pool_size=(2, 2))(headModel)
-      headModel = Dropout(0.5)(headModel) 
-    else:
-      headModel = inputs          
-    
-    baseModel = VGG16( # Pre-trained VGG16
-      weights="imagenet", include_top=False, 
-      input_tensor=headModel)
-    # loop over all layers in the base model and freeze them so they will
-    # *not* be updated during the first training process
-    for layer in baseModel.layers:
-      layer.trainable = False
-    # construct the head of the model 
-    # that will be placed on top of the the base model
-    headModel = baseModel.output
     
     if self.hps["deeper"]:
       headModel = Conv2D(512, (3, 3), padding='same')(headModel)
