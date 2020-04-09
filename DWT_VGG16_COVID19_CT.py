@@ -50,8 +50,10 @@ class DWTVGG16COVID19:
     self.max_epochs  = hps["max_epochs"]
     self.x_train = hps["x_train"]
     self.x_test  = hps["x_test"]
+    self.x_val   = hps["x_val"]
     self.y_train = hps["y_train"]
     self.y_test  = hps["y_test"]
+    self.y_val   = hps["y_val"]
     self.x_shape = self.x_train.shape[1:]
     self.hps = hps # other hp
     if self.bias_off_crop: # append _boc to data set name
@@ -182,11 +184,13 @@ class DWTVGG16COVID19:
     x_train = self.x_train
     x_test  = self.x_test
     #x_train, x_test = self.normalize(x_train, x_test)
+    x_val   = self.x_val
 
     #y_train = keras.utils.to_categorical(y_train, self.num_classes)
     #y_test = keras.utils.to_categorical(y_test, self.num_classes)
     y_train = self.y_train
     y_test  = self.y_test
+    y_val   = self.y_val
 
     # data augmentation
     datagen = ImageDataGenerator(
@@ -246,7 +250,7 @@ class DWTVGG16COVID19:
       steps_per_epoch=x_train.shape[0] // batch_size,
       epochs=max_epochs,
       initial_epoch=last_epochs,
-      validation_data=(x_test, y_test),
+      validation_data=(x_val, y_val),
       callbacks=[checkpoint_cb],
       verbose=1)
     
@@ -311,8 +315,9 @@ if __name__ == '__main__':
   # the list of data (i.e., images) and class images
   print("[INFO] loading images...")
   dataset_dir = args["dataset_dir"]
+  images_dir  = os.path.join(dataset_dir, "Images-processed")
   #imagePaths = list(paths.list_images(dataset_dir))
-  xray_images = [xray_image for xray_image in list(paths.list_images(dataset_dir)) \
+  xray_images = [xray_image for xray_image in list(paths.list_images(images_dir)) \
               if ("_mask" not in xray_image \
                   and "_crop" not in xray_image \
                   and "_dilate" not in xray_image \
@@ -321,11 +326,29 @@ if __name__ == '__main__':
     
   data = []
   labels = []
-  # loop over the image paths
-  for xray_image_path in xray_images:
-    # extract the class label from the filename
-    label = xray_image_path.split(os.path.sep)[-2]
+  # load train, validation and test samples
+  data_split_dir = os.path.join(dataset_dir, "Data-split")
   
+  def get_split_filenames(label, split_name):
+    split_name_file = open(os.path.join(data_split_dir, label, "%sCT_%s.txt" % (split_name, label)))  
+    split_filenames  = split_name_file.readlines()
+    split_name_file.close()
+    return [filename.replace("\n","") for filename in split_filenames]
+  
+  def get_split_data(label, split_name):
+    split_images = []
+    split_labels = []
+    split_filenames = get_split_filenames(label, split_name)
+    for xray_image_path in xray_images: # filename and label are matched
+      if (os.path.basename(xray_image_path) in split_filenames \
+          and label in os.path.dirname(xray_image_path)):
+        split_images.append(read_and_crop_image(xray_image_path))
+        split_labels.append(label)
+      else: # 
+        print("%s contains no %s" % (split_name, os.path.basename(xray_image_path)))
+    return [split_images, split_labels]
+  
+  def read_and_crop_image(xray_image_path): 
     # load the image, swap color channels, and resize it to be a fixed
     # 224x224 pixels while ignoring aspect ratio
     if args["bias_off_crop"]:
@@ -334,24 +357,64 @@ if __name__ == '__main__':
       image = cv2.imread(xray_image_path)
       image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     image = cv2.resize(image, (in_size, in_size))
+    return image
   
-    # update the data and labels lists, respectively
-    data.append(image)
-    labels.append(label)
+  x_train = []
+  y_train = []
+  x_test  = []
+  y_test  = []
+  x_val   = []
+  y_val   = []
+  labels  = [os.path.basename(label_dir) for label_dir in os.listdir(data_split_dir) \
+             if os.path.isdir(os.path.join(data_split_dir,label_dir))]
+  print("Labels: %s " % str(labels))
+  for i, label in enumerate(labels): 
+    train_filenames = get_split_filenames(label, "train")
+    test_filenames = get_split_filenames(label, "test")
+    val_filenames = get_split_filenames(label, "val")
+    #sub_xray_images = [xray_image_path for xray_image_path in xray_images \
+    #                   if os.path.basename(os.path.dirname(xray_image_path)).startswith(label)]
+    for xray_image_path in xray_images: # 
+      sub_dir_name = os.path.basename(os.path.dirname(xray_image_path))
+      #print(sub_dir_name)
+      if sub_dir_name.startswith("CT_%s" % label):
+        if os.path.basename(xray_image_path) in train_filenames:        
+          x_train.append(read_and_crop_image(xray_image_path))
+          y_train.append(label)
+        elif os.path.basename(xray_image_path) in test_filenames:       
+          x_test.append(read_and_crop_image(xray_image_path))
+          y_test.append(label)
+        elif os.path.basename(xray_image_path) in val_filenames:       
+          x_val.append(read_and_crop_image(xray_image_path))
+          y_val.append(label)
+        else:
+          print("!!! %s is nothing matched!!!" % os.path.basename(xray_image_path))
+    print("Train: %d in %s" % (len(x_train),str(labels[:i+1])))
+    print("Test: %d in %s" % (len(x_test),str(labels[:i+1])))
+    print("Val: %d in %s" % (len(x_val),str(labels[:i+1])))
 
   # convert the data and labels to NumPy arrays while scaling the pixel
   # intensities to the range [0, 255]
-  data = np.array(data) / 255.0
-  #print(data)
-  labels = np.array(labels)
-  print("Labels: %s " % str(labels))
-  
+  x_train = np.array(x_train) / 255.0
+  x_test = np.array(x_test) / 255.0
+  x_val = np.array(x_val) / 255.0
+  #print("Train: %d in total" % len(x_train))
+  #print("Test: %d in total" % len(x_test))
+  #print("Val: %d in total" % len(x_val))
+  #print(data)    
   # perform one-hot encoding on the labels
   #lb = LabelBinarizer()
   #labels = lb.fit_transform(labels)
   le = LabelEncoder()
-  labels = le.fit_transform(labels)
-  labels = to_categorical(labels)  
+  def labels_to_categorical(labels):
+    labels = np.array(labels)
+    labels = le.fit_transform(labels)
+    labels = to_categorical(labels)  
+    return labels
+  
+  y_train = labels_to_categorical(y_train) 
+  y_test = labels_to_categorical(y_test) 
+  y_val = labels_to_categorical(y_val) 
   #print(labels)
   #print(le.classes_)
   num_classes = len(le.classes_) # 2 or 3
@@ -359,14 +422,16 @@ if __name__ == '__main__':
 
   # partition the data into training and testing splits using 80% of
   # the data for training and the remaining 20% for testing
-  (x_train, x_test, y_train, y_test) = train_test_split(data, labels,
-    test_size=0.20, stratify=labels, random_state=42)
+  #(x_train, x_test, y_train, y_test) = train_test_split(data, labels,
+  #  test_size=0.20, stratify=labels, random_state=42)
   #print(y_train)
   #print(y_test)
   args['x_train'] = x_train
   args['x_test']  = x_test
+  args['x_val']   = x_val
   args['y_train'] = y_train
   args['y_test']  = y_test
+  args['y_val']   = y_val
   print(y_train[:10,:])
   print(y_test[:10,:])
 
