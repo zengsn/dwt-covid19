@@ -14,6 +14,8 @@ from keras.layers import Input, Reshape
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Conv2D
 from keras.layers.core import Lambda
+from keras.layers.normalization import BatchNormalization
+from keras.layers.pooling import MaxPooling2D
 from keras.models import Model
 from keras.optimizers import Adam
 #from keras import backend as K
@@ -105,7 +107,14 @@ class DWTVGG16COVID19:
       print(headModel.shape) 
       headModel = Lambda(lambda x: tf.reduce_min(x, 3))(headModel) 
       headModel = Reshape([w,h,z])(headModel)
-      print(headModel.shape) 
+      print(headModel.shape)
+    
+    if self.hps["deeper"]:
+      headModel = Conv2D(512, (3, 3), padding='same')(headModel)
+      headModel = Activation('relu')(headModel)
+      headModel = BatchNormalization()(headModel)
+      headModel = MaxPooling2D(pool_size=(2, 2))(headModel)
+      headModel = Dropout(0.5)(headModel)
 
     # Normal fine-tuning
     headModel = Flatten()(headModel)
@@ -299,12 +308,18 @@ if __name__ == '__main__':
     help="weight decay, default is 0.0005")
   ap.add_argument("-me", "--max_epochs", type=int, default=25,
     help="max epoches, default is 25")
+  # bias_off_crop
   ap.add_argument('--boc', dest='bias_off_crop', action='store_true')
   ap.add_argument('--no-boc', dest='bias_off_crop', action='store_false')
   ap.set_defaults(bias_off_crop=False)
+  # wavelet
   ap.add_argument('--wavelet', dest='wavelet', action='store_true')
   ap.add_argument('--no-wavelet', dest='wavelet', action='store_false')
   ap.set_defaults(wavelet=False)
+  # deeper architecture
+  ap.add_argument('--deeper', dest='deeper', action='store_true')
+  ap.add_argument('--no-deeper', dest='deeper', action='store_false')
+  ap.set_defaults(deeper=False)
   args = vars(ap.parse_args())
   
   in_size = 224
