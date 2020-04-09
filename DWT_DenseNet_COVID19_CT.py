@@ -7,26 +7,26 @@
 
 # import the necessary packages
 from __future__ import print_function
+import tensorflow as tf 
 from keras.preprocessing.image import ImageDataGenerator
-from keras.applications.densenet import DenseNet121
-from keras.applications.densenet import DenseNet169
-from keras.applications.densenet import DenseNet201
 from keras.callbacks import ModelCheckpoint
-from keras.layers import Input, Reshape
-from keras.layers import Dense, Dropout, Activation, Flatten
+from keras.layers import Input, Reshape, merge
+from keras.layers import Dense, Dropout, Activation
 from keras.layers import Conv2D
 from keras.layers.core import Lambda
-from keras.layers.pooling import GlobalAveragePooling2D
+from keras.layers.convolutional import ZeroPadding2D, Convolution2D
+from keras.layers.normalization import BatchNormalization
+from keras.layers.pooling import GlobalAveragePooling2D, MaxPooling2D,\
+  AveragePooling2D
 from keras.models import Model
-from keras.optimizers import Adam
-#from keras import backend as K
-#from keras import regularizers
+from keras.optimizers import SGD
+#from tf.keras import backend as K
+#from tf.keras import regularizers
 from keras.utils import to_categorical
 
 # resize input to 48x48 at least
 import cv2  
 
-import tensorflow as tf
 #from sklearn.preprocessing import LabelBinarizer
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import classification_report
@@ -39,11 +39,13 @@ import os
 
 from WaveletDeconvolution import WaveletDeconvolution
 from Bias_Off_Crop import crop as bias_off_crop
+from custom_layers.scale_layer import Scale
 
 class DWTDenseNetCOVID19:
   def __init__(self, hps, train=True): 
     self.dataset      = hps["dataset"]
     self.network      = hps["network"]
+    self.weights_dir  = hps["weights_dir"]
     self.num_classes  = hps["num_classes"] #10
     self.learning_rate= hps["learning_rate"] #1e-3
     self.weight_decay = hps["weight_decay"] #0.0005
@@ -76,64 +78,221 @@ class DWTDenseNetCOVID19:
     else: # load the saved model
       self.model.load_weights(os.path.join(
         self.model_dir, self.final_weights_file))
+  
+  def conv_block(self, x, stage, branch, nb_filter, dropout_rate=None, weight_decay=1e-4):
+    '''Apply BatchNorm, Relu, bottleneck 1x1 Conv2D, 3x3 Conv2D, and option dropout
+        # Arguments
+            x: input tensor 
+            stage: index for dense block
+            branch: layer index within each dense block
+            nb_filter: number of filters
+            dropout_rate: dropout rate
+            weight_decay: weight decay factor
+    '''
+    eps = 1.1e-5
+    conv_name_base = 'conv' + str(stage) + '_' + str(branch)
+    relu_name_base = 'relu' + str(stage) + '_' + str(branch)
 
+    # 1x1 Convolution (Bottleneck layer)
+    inter_channel = nb_filter * 4  
+    x = BatchNormalization(epsilon=eps, axis=concat_axis, name=conv_name_base+'_x1_bn')(x)
+    x = Scale(axis=concat_axis, name=conv_name_base+'_x1_scale')(x)
+    x = Activation('relu', name=relu_name_base+'_x1')(x)
+    x = Convolution2D(inter_channel, 1, 1, name=conv_name_base+'_x1', bias=False)(x)
+
+    if dropout_rate:
+        x = Dropout(dropout_rate)(x)
+
+    # 3x3 Convolution
+    x = BatchNormalization(epsilon=eps, axis=concat_axis, name=conv_name_base+'_x2_bn')(x)
+    x = Scale(axis=concat_axis, name=conv_name_base+'_x2_scale')(x)
+    x = Activation('relu', name=relu_name_base+'_x2')(x)
+    x = ZeroPadding2D((1, 1), name=conv_name_base+'_x2_zeropadding')(x)
+    x = Convolution2D(nb_filter, 3, 3, name=conv_name_base+'_x2', bias=False)(x)
+
+    if dropout_rate:
+        x = Dropout(dropout_rate)(x)
+
+    return x
+
+
+  def transition_block(self, x, stage, nb_filter, compression=1.0, dropout_rate=None, weight_decay=1E-4):
+    ''' Apply BatchNorm, 1x1 Convolution, averagePooling, optional compression, dropout 
+        # Arguments
+            x: input tensor
+            stage: index for dense block
+            nb_filter: number of filters
+            compression: calculated as 1 - reduction. Reduces the number of feature maps in the transition block.
+            dropout_rate: dropout rate
+            weight_decay: weight decay factor
+    '''
+
+    eps = 1.1e-5
+    conv_name_base = 'conv' + str(stage) + '_blk'
+    relu_name_base = 'relu' + str(stage) + '_blk'
+    pool_name_base = 'pool' + str(stage) 
+
+    x = BatchNormalization(epsilon=eps, axis=concat_axis, name=conv_name_base+'_bn')(x)
+    x = Scale(axis=concat_axis, name=conv_name_base+'_scale')(x)
+    x = Activation('relu', name=relu_name_base)(x)
+    x = Convolution2D(int(nb_filter * compression), 1, 1, name=conv_name_base, bias=False)(x)
+
+    if dropout_rate:
+        x = Dropout(dropout_rate)(x)
+
+    x = AveragePooling2D((2, 2), strides=(2, 2), name=pool_name_base)(x)
+
+    return x
+
+  def dense_block(self, x, stage, nb_layers, nb_filter, growth_rate, dropout_rate=None, weight_decay=1e-4, grow_nb_filters=True):
+    ''' Build a dense_block where the output of each conv_block is fed to subsequent ones
+        # Arguments
+            x: input tensor
+            stage: index for dense block
+            nb_layers: the number of layers of conv_block to append to the model.
+            nb_filter: number of filters
+            growth_rate: growth rate
+            dropout_rate: dropout rate
+            weight_decay: weight decay factor
+            grow_nb_filters: flag to decide to allow number of filters to grow
+    '''
+
+    eps = 1.1e-5
+    concat_feat = x
+
+    for i in range(nb_layers):
+        branch = i+1
+        x = self.conv_block(concat_feat, stage, branch, growth_rate, dropout_rate, weight_decay)
+        concat_feat = merge([concat_feat, x], mode='concat', concat_axis=concat_axis, name='concat_'+str(stage)+'_'+str(branch))
+
+        if grow_nb_filters:
+            nb_filter += growth_rate
+
+    return concat_feat, nb_filter
+      
+  def build_densenet_model(self, inputs,                            
+      nb_dense_block=4, growth_rate=32, 
+      nb_filter=64, reduction=0.5, 
+      dropout_rate=0.0, weight_decay=1e-4):  
+    '''
+    DenseNet 169 Model for Keras
+    Model Schema is based on 
+    https://github.com/flyyufelix/DenseNet-Keras
+    ImageNet Pretrained Weights 
+    Theano: https://drive.google.com/open?id=0Byy2AcGyEVxfN0d3T1F1MXg0NlU
+    TensorFlow: https://drive.google.com/open?id=0Byy2AcGyEVxfSEc5UC1ROUFJdmM
+    # Arguments
+        nb_dense_block: number of dense blocks to add to end
+        growth_rate: number of filters to add per dense block
+        nb_filter: initial number of filters
+        reduction: reduction factor of transition blocks.
+        dropout_rate: dropout rate
+        weight_decay: weight decay factor
+        classes: optional number of classes to classify images
+        weights_path: path to pre-trained weights
+    # Returns
+        A Keras model instance.
+    '''
+    eps = 1.1e-5
+    # img_rows = inputs.shape[1].value
+    # img_cols = inputs.shape[2].value
+    # color_type = inputs.shape[3].value
+    # num_classes=None  
+
+    # compute compression factor
+    compression = 1.0 - reduction
+
+    # Handle Dimension Ordering for different backends
+    global concat_axis
+    concat_axis = 3
+    #img_input = Input(shape=(224, 224, 3), name='data')
+    img_input = inputs 
+
+    # From architecture for ImageNet (Table 1 in the paper)
+    nb_filter = 64
+    nb_layers = [6,12,32,32] # For DenseNet-169
+
+    # Initial convolution
+    x = ZeroPadding2D((3, 3), name='conv1_zeropadding')(img_input)
+    x = Convolution2D(nb_filter, 7, 7, subsample=(2, 2), name='conv1', bias=False)(x)
+    x = BatchNormalization(epsilon=eps, axis=concat_axis, name='conv1_bn')(x)
+    x = Scale(axis=concat_axis, name='conv1_scale')(x)
+    x = Activation('relu', name='relu1')(x)
+    x = ZeroPadding2D((1, 1), name='pool1_zeropadding')(x)
+    x = MaxPooling2D((3, 3), strides=(2, 2), name='pool1')(x)
+
+    # Add dense blocks
+    for block_idx in range(nb_dense_block - 1):
+        stage = block_idx+2
+        x, nb_filter = self.dense_block(x, stage, nb_layers[block_idx], nb_filter, growth_rate, dropout_rate=dropout_rate, weight_decay=weight_decay)
+
+        # Add transition_block
+        x = self.transition_block(x, stage, nb_filter, compression=compression, dropout_rate=dropout_rate, weight_decay=weight_decay)
+        nb_filter = int(nb_filter * compression)
+
+    final_stage = stage + 1
+    x, nb_filter = self.dense_block(x, final_stage, nb_layers[-1], nb_filter, growth_rate, dropout_rate=dropout_rate, weight_decay=weight_decay)
+
+    x = BatchNormalization(epsilon=eps, axis=concat_axis, name='conv'+str(final_stage)+'_blk_bn')(x)
+    x = Scale(axis=concat_axis, name='conv'+str(final_stage)+'_blk_scale')(x)
+    x = Activation('relu', name='relu'+str(final_stage)+'_blk')(x)
+
+    x_fc = GlobalAveragePooling2D(name='pool'+str(final_stage))(x)
+    x_fc = Dense(1000, name='fc6')(x_fc)
+    x_fc = Activation('softmax', name='prob')(x_fc)
+
+    model = Model(img_input, x_fc, name='densenet')
+    return [model, x, final_stage]
 
   def build_model(self):
-    if self.network == 121:
-      baseModel = DenseNet121()( # 
-        weights="imagenet", include_top=False, 
-        input_tensor=Input(shape=self.x_shape))
-    elif self.network == 169:
-      baseModel = DenseNet169()( # 
-        weights="imagenet", include_top=False, 
-        input_tensor=Input(shape=self.x_shape))
-    else:
-      baseModel = DenseNet201()( # 
-        weights="imagenet", include_top=False, 
-        inputs=Input(shape=self.x_shape))
+    inputs = Input(shape=self.x_shape, name='data')
+    base_model, base_output, final_stage = self.build_densenet_model(inputs)
+    # Use pre-trained weights for Tensorflow backend
+    weights_path = os.path.join(self.weights_dir, #'densennet-imagenet-models'
+                                'densenet169_weights_tf.h5')
+    base_model.load_weights(weights_path, by_name=True)
     # loop over all layers in the base model and freeze them so they will
     # *not* be updated during the first training process
-    for layer in baseModel.layers:
-      layer.trainable = False
-    # construct the head of the model 
-    # that will be placed on top of the the base model
-    headModel = baseModel.output
+    #for layer in base_model.layers[-3]:
+    #  layer.trainable = False
+      
     if self.hps["wavelet"]: # add WaveletDeconv       
-      print(headModel.shape) 
-      w = headModel.shape[1].value 
-      h = headModel.shape[2].value 
-      z = headModel.shape[3].value 
+      print(base_output.shape) 
+      w = base_output.shape[1].value 
+      h = base_output.shape[2].value 
+      z = base_output.shape[3].value 
       # TypeError: float() argument must be a string or a number, not 'Dimension' keras
       # Solution: https://blog.csdn.net/qq_40774175/article/details/105196387
       # When using Reshape, make sure the shape is using int values. 
-      headModel = Reshape([w*h,z])(headModel)
+      wd_layers = Reshape([w*h,z])(base_output)
       # Error: Variable is unhashable if Tensor equality is enabled
       #headModel = Lambda(lambda x: tf.reshape(x, [-1,7*7,512]))(headModel) 
-      headModel = WaveletDeconvolution(
+      wd_layers = WaveletDeconvolution(
         5, kernel_length=500, padding='same', 
-        input_shape=[w*h,z], data_format='channels_first')(headModel)
-      headModel = Activation('tanh')(headModel)
-      headModel = Conv2D(5, (3, 3), padding='same')(headModel)
-      headModel = Activation('relu')(headModel)
-      print(headModel.shape) 
-      headModel = Lambda(lambda x: tf.reduce_min(x, 3))(headModel) 
-      headModel = Reshape([w,h,z])(headModel)
-      print(headModel.shape) 
+        input_shape=[w*h,z], data_format='channels_first')(wd_layers)
+      wd_layers = Activation('tanh')(wd_layers)
+      wd_layers = Conv2D(5, (3, 3), padding='same')(wd_layers)
+      wd_layers = Activation('relu')(wd_layers)
+      print(wd_layers.shape) 
+      wd_layers = Lambda(lambda x: tf.reduce_min(x, 3))(wd_layers) 
+      wd_layers = Reshape([w,h,z])(wd_layers)
+      print(wd_layers.shape) 
+      base_output = wd_layers
+    # Truncate and replace softmax layer for transfer learning
+    # Cannot use model.layers.pop() since model is not of Sequential() type
+    # The method below works since pre-trained weights are stored in layers but not in the model
+    head_model = GlobalAveragePooling2D(name='pool'+str(final_stage))(base_output)
+    head_model = Dense(num_classes, name='fc6')(head_model)
+    head_model = Activation('softmax', name='prob')(head_model)
 
-    # Normal fine-tuning
-    headModel = GlobalAveragePooling2D()(headModel)
-    headModel = Dense(self.num_classes)(headModel)
-    headModel = Activation('softmax')(headModel)
-    
-    # place the head FC model on top of the base model
-    # (this will become the actual model we will train)
-    model = Model(inputs=baseModel.input, outputs=headModel)    
+    model = Model(inputs, head_model)   
     return model 
 
   def predict(self):
     x = self.x_test
     y = self.y_test
     predIdxs = self.model.predict(x, self.batch_size)
+    #score = log_loss(y, predIdxs)
 
     # for each image in the testing set we need to find the index of the
     # label with corresponding largest predicted probability
@@ -215,11 +374,12 @@ class DWTDenseNetCOVID19:
     #datagen.fit(x_train) # featurewise_center, featurewise_std_normalization and zca_whitening.
 
     # optimization details
-    opt = Adam(lr=learning_rate, decay=lr_decay)
+    #opt = Adam(lr=learning_rate, decay=lr_decay)
+    opt = SGD(lr=learning_rate, decay=lr_decay, momentum=0.9, nesterov=True)
     if self.num_classes == 2:
       model.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
     else: #self.num_classes == 3
-      model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])    
+      model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])   
     
     # check the last training steps
     checkpoint_dir = self.model_dir
@@ -294,6 +454,8 @@ if __name__ == '__main__':
     help="directory containing COVID-19 images")
   ap.add_argument("-net", "--network", type=int, default=201,
     help="DenseNet version, 121, 169, or 201")
+  ap.add_argument("-ws", "--weights_dir", type=str, default="densenet-imagenet-models",                  
+    help="directory containing pre-trained models")  
   #ap.add_argument("-nc", "--num_classes", type=int, default=2,
   #  help="number of classes, default is 2, covid19 and normal")
   #ap.add_argument("-p", "--plot", type=str, default="plot.png",
