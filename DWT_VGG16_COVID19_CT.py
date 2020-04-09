@@ -108,6 +108,9 @@ class DWTVGG16COVID19:
       headModel = Lambda(lambda x: tf.reduce_min(x, 3))(headModel) 
       headModel = Reshape([w,h,z])(headModel)
       print(headModel.shape)
+      headModel = BatchNormalization()(headModel)
+      headModel = MaxPooling2D(pool_size=(2, 2))(headModel)
+      headModel = Dropout(0.5)(headModel)
     
     if self.hps["deeper"]:
       headModel = Conv2D(512, (3, 3), padding='same')(headModel)
