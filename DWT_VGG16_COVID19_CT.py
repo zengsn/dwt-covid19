@@ -278,7 +278,10 @@ class DWTVGG16COVID19:
         plt.plot(np.arange(0, N), H.history["accuracy"], label="train_acc")
       else: 
         plt.plot(np.arange(0, N), H.history["acc"], label="train_acc")
-      plt.plot(np.arange(0, N), H.history["val_accuracy"], label="val_acc")
+      if "val_accuracy" in H.history:
+        plt.plot(np.arange(0, N), H.history["val_accuracy"], label="val_acc")
+      else:
+        plt.plot(np.arange(0, N), H.history["val_acc"], label="val_acc")
       plt.title("Training Loss and Accuracy (%s)" % self.name)
       plt.xlabel("Epoch #")
       plt.ylabel("Loss/Accuracy")
