@@ -8,12 +8,15 @@
 # import the necessary packages
 from __future__ import print_function
 from keras.preprocessing.image import ImageDataGenerator
-from keras.applications import VGG16
+from keras.applications.densenet import DenseNet121
+from keras.applications.densenet import DenseNet169
+from keras.applications.densenet import DenseNet201
 from keras.callbacks import ModelCheckpoint
 from keras.layers import Input, Reshape
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Conv2D
 from keras.layers.core import Lambda
+from keras.layers.pooling import GlobalAveragePooling2D
 from keras.models import Model
 from keras.optimizers import Adam
 #from keras import backend as K
@@ -37,9 +40,10 @@ import os
 from WaveletDeconvolution import WaveletDeconvolution
 from Bias_Off_Crop import crop as bias_off_crop
 
-class DWTVGG16COVID19:
+class DWTDenseNetCOVID19:
   def __init__(self, hps, train=True): 
     self.dataset      = hps["dataset"]
+    self.network      = hps["network"]
     self.num_classes  = hps["num_classes"] #10
     self.learning_rate= hps["learning_rate"] #1e-3
     self.weight_decay = hps["weight_decay"] #0.0005
@@ -75,9 +79,18 @@ class DWTVGG16COVID19:
 
 
   def build_model(self):
-    baseModel = VGG16( # Pre-trained VGG16
-      weights="imagenet", include_top=False, 
-      input_tensor=Input(shape=self.x_shape))
+    if self.network == 121:
+      baseModel = DenseNet121()( # 
+        weights="imagenet", include_top=False, 
+        input_tensor=Input(shape=self.x_shape))
+    elif self.network == 169:
+      baseModel = DenseNet169()( # 
+        weights="imagenet", include_top=False, 
+        input_tensor=Input(shape=self.x_shape))
+    else:
+      baseModel = DenseNet201()( # 
+        weights="imagenet", include_top=False, 
+        input_tensor=Input(shape=self.x_shape))
     # loop over all layers in the base model and freeze them so they will
     # *not* be updated during the first training process
     for layer in baseModel.layers:
@@ -108,13 +121,7 @@ class DWTVGG16COVID19:
       print(headModel.shape) 
 
     # Normal fine-tuning
-    headModel = Flatten()(headModel)
-    #headModel = Dense(512,kernel_regularizer=regularizers.l2(self.weight_decay))(headModel)
-    headModel = Dense(64)(headModel)
-    headModel = Activation('relu')(headModel)
-    #headModel = BatchNormalization()(headModel)
-
-    headModel = Dropout(0.5)(headModel)
+    headModel = GlobalAveragePooling2D()(headModel)
     headModel = Dense(self.num_classes)(headModel)
     headModel = Activation('softmax')(headModel)
     
@@ -285,6 +292,8 @@ if __name__ == '__main__':
     help="dataset name, default is covid19")
   ap.add_argument("-dd", "--dataset_dir", type=str, required=True,
     help="directory containing COVID-19 images")
+  ap.add_argument("-net", "--network", type=int, default=201,
+    help="DenseNet version, 121, 169, or 201")
   #ap.add_argument("-nc", "--num_classes", type=int, default=2,
   #  help="number of classes, default is 2, covid19 and normal")
   #ap.add_argument("-p", "--plot", type=str, default="plot.png",
@@ -435,7 +444,7 @@ if __name__ == '__main__':
   print(y_test[:10,:])
 
   # 3. Create and train the model
-  model = DWTVGG16COVID19(args, True)
+  model = DWTDenseNetCOVID19(args, True)
 
   # 4. Predict the result
   predicted_x = model.predict()
