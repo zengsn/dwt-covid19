@@ -157,7 +157,7 @@ class DWTDenseNetCOVID19:
             grow_nb_filters: flag to decide to allow number of filters to grow
     '''
 
-    eps = 1.1e-5
+    #eps = 1.1e-5
     concat_feat = x
 
     for i in range(nb_layers):
